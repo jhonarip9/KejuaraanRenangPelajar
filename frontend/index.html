@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B3B6F">
+<meta name="description" content="Portal resmi Kejuaraan Renang Pelajar: info lomba, pendaftaran sekolah/klub, jadwal & start list, hasil live, klasemen, dan rekor.">
+<title>Kejuaraan Renang Pelajar</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="img/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="img/icon-192.png">
+<!-- Sambungan awal ke API Apps Script (memangkas jeda permintaan pertama) -->
+<link rel="preconnect" href="https://script.google.com" crossorigin>
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="css/style.css?v=2.0.0">
+</head>
+<body data-shell="public">
+<a href="#main" style="position:absolute;left:-9999px">Lewati ke konten</a>
+<header id="pubbar"></header>
+<aside id="side" aria-label="Navigasi panel"></aside>
+<div id="appbar"></div>
+<main id="main"><div class="k-wrap pad"><div class="k-skel"></div><div class="k-skel"></div><div class="k-skel"></div></div></main>
+<footer id="foot"></footer>
+<nav id="bnav" aria-label="Navigasi bawah"></nav>
+<div id="toasts" aria-live="polite"></div>
+<div id="modal" hidden></div>
+<noscript><div style="padding:24px;text-align:center">Aktifkan JavaScript untuk membuka portal ini.</div></noscript>
+<script>
+/* Pengaman: bila skrip utama gagal dimuat (jaringan/berkas hilang), tampilkan pesan yang bisa ditindaklanjuti. */
+setTimeout(function(){var m=document.getElementById('main');if(!m||!m.querySelector('.k-skel')||window.KRP)return;
+m.innerHTML='<div class="k-wrap pad" style="text-align:center;padding-top:40px"><h2>Aplikasi belum tampil</h2><p style="margin:8px 0 16px;color:#5b6b7b">Berkas aplikasi belum termuat. Periksa koneksi lalu muat ulang.</p><button onclick="location.reload()" style="padding:10px 18px;border-radius:10px;border:0;background:#0B3B6F;color:#fff;font-weight:600;cursor:pointer">Muat ulang</button></div>';},9000);
+</script>
+<script src="js/config.js?v=2.0.0"></script>
+<script src="js/app.js?v=2.0.0" defer></script>
+</body>
+</html>
