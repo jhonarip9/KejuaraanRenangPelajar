@@ -5,6 +5,6 @@
  * JANGAN menaruh token, kata sandi, atau kunci apa pun di berkas ini.
  */
 window.KRP_CONFIG = {
-  GAS_URL: 'https://script.google.com/macros/s/AKfycbzCSo3VNiFewy_A6PL9kqOD31NeIGmBpPFKfGFCwLh7_CYMzS0DUsBwoPxRBm-OUxcY/exec',
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbyviWsJ95c8d7k5WCc6NEVt9eLRpaC6h548xC4xxZleytJ3mN4Vxa4zYMCbrm0pN9Lg/exec',
   VERSI: '2.0.0'
 };
