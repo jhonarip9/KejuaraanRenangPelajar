@@ -1,4 +1,4 @@
-/* KRP Pro v2.0.0 — modul publik & akun pendaftar. Dibuat otomatis oleh tools/build.js dari folder src/. Jangan diedit langsung. */
+/* KRP Pro v2.1.0 — modul publik & akun pendaftar. Dibuat otomatis oleh tools/build.js dari folder src/. Jangan diedit langsung. */
 (function () {
 'use strict';
 /* ===== Dasar ===== */
@@ -52,12 +52,12 @@ function rp(action, data, n) {
 const KCFG = window.KRP_CONFIG || {};
 const GAS_URL = String(KCFG.GAS_URL || '').trim();
 const API_SIAP = /^https:\/\/script\.google\.com\/(a\/[^/]+\/)?macros\/s\/[A-Za-z0-9_-]{20,}\/exec$/.test(GAS_URL) && !/GANTI|XXXX/.test(GAS_URL);
-const API_TULIS = new Set(["a.kontak","ars.run","auth.daftar","cfg.simpan","dok.buat","dok.logo.set","dok.logo.up","dok.publik","ev.aktifkan","ev.daftar","ev.demo","ev.demo.hapus","ev.hapus","ev.kel","ev.nomor.gen","ev.nomor.hapus","ev.nomor.massal","ev.nomor.rapikan","ev.nomor.simpan","ev.preset","ev.reset","ev.reset.pedoman","ev.simpan","ev.status","fase.set","gal.del","gal.link","gal.up","h.sahkan","h.simpan","h.tarik","imp.final","imp.hapus","imp.kolam","imp.rekor","imp.simpan","jd.set","jd.susun","kur.img","kur.simpan","m.atlet","m.daftarnomor","m.klaim","m.klaim.batal","m.pengajuan","m.perbaiki","man.simpan","me.sandi","mig.run","mst.default","mst.hapus","mst.simpan","p.aksi","s.run","sa.akun.hapus","sa.akun.sandi","sa.akun.status","sa.entri.hapus","sa.entri.ubah","sa.klaim.aksi","sys.rollover","usr.hapus","usr.reset","usr.simpan","v.aksi"]);
+const API_TULIS = new Set(["a.kontak","ars.run","auth.daftar","cfg.simpan","dok.buat","dok.logo.set","dok.logo.up","dok.publik","ev.aktifkan","ev.daftar","ev.demo","ev.demo.hapus","ev.hapus","ev.kel","ev.nomor.gen","ev.nomor.hapus","ev.nomor.massal","ev.nomor.rapikan","ev.nomor.simpan","ev.preset","ev.reset","ev.reset.pedoman","ev.simpan","ev.status","fase.set","gal.del","gal.link","gal.up","h.sahkan","h.simpan","h.tarik","imp.final","imp.hapus","imp.kolam","imp.rekor","imp.simpan","jd.buka","jd.final","jd.set","jd.susun","kur.img","kur.simpan","m.atlet","m.daftarnomor","m.klaim","m.klaim.batal","m.pengajuan","m.perbaiki","man.simpan","me.sandi","mig.run","mst.default","mst.hapus","mst.simpan","p.aksi","s.run","sa.akun.hapus","sa.akun.sandi","sa.akun.status","sa.entri.hapus","sa.entri.tambah","sa.entri.ubah","sa.klaim.aksi","sb.paket","sb.pindah","sys.darurat","sys.keluarsemua","sys.rollover","usr.hapus","usr.reset","usr.simpan","v.aksi"]);
 const Perf = { log: [], add(o) { this.log.push(o); if (this.log.length > 60) this.log.shift(); }, rata() { const L = this.log.filter(x => x.ok); if (!L.length) return null; const t = L.reduce((s, x) => s + x.total, 0) / L.length, m = L.reduce((s, x) => s + (x.server || 0), 0) / L.length; return { n: L.length, total: Math.round(t), server: Math.round(m), net: Math.round(t - m) }; } };
 let _epoch = 0, _antre = [], _antreT = 0; const _inflight = {};
 const reqId = () => { try { const a = new Uint8Array(12); crypto.getRandomValues(a); return Array.from(a, b => b.toString(36).padStart(2, '0')).join('').slice(0, 20); } catch (e) { return Date.now().toString(36) + Math.random().toString(36).slice(2, 12); } };
 async function kirimAPI(body, tulis) {
-  const besar = body.length > 1e6, batas = tulis ? (besar ? 180000 : 90000) : 25000;
+  const besar = body.length > 1e6, batas = (tulis || body.length > 2e5) ? (besar ? 180000 : 90000) : 25000; // unggah berkas (bukan aksi tulis) juga diberi waktu panjang
   const ac = typeof AbortController !== 'undefined' ? new AbortController() : null, tm = ac ? setTimeout(() => ac.abort(), batas) : 0;
   try {
     const r = await fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body, redirect: 'follow', cache: 'no-store', signal: ac ? ac.signal : undefined });
@@ -89,7 +89,8 @@ function flushAntre() {
 function rp1(action, data) {
   if (!API_SIAP) return Promise.reject(new Error('Konfigurasi belum lengkap: isi alamat API (GAS_URL) di js/config.js.'));
   data = data || {};
-  if (API_TULIS.has(action)) { _epoch++; Object.keys(_inflight).forEach(k => delete _inflight[k]); const id = reqId(); return panggil({ action, token: S.token || '', data, reqId: id }, true).then(hasil1); }
+  if (API_TULIS.has(action)) { _epoch++; S.hl = {}; Object.keys(_inflight).forEach(k => delete _inflight[k]); const id = reqId(); return panggil({ action, token: S.token || '', data, reqId: id }, true).then(hasil1); }
+  if (action === 'm.upload') return panggil({ action, token: S.token || '', data }, false).then(hasil1); // berkas: kiriman sendiri (tidak digabung batch), paralel
   const k = _epoch + '|' + (S.token || '').slice(-12) + '|' + action + '|' + JSON.stringify(data);
   if (_inflight[k]) return _inflight[k];
   const p = new Promise((res, rej) => { _antre.push({ action, data, res, rej }); if (!_antreT) _antreT = setTimeout(flushAntre, 0); });
@@ -102,6 +103,25 @@ function swr(key, action, data, cb, ttl) {
   const live = (d, c) => { if (t === S.rt) cb(d, c); };
   if (hit) { S.cache[k] = hit; live(hit.d, true); if (Date.now() - hit.t < (ttl || 8000)) return Promise.resolve(hit.d); }
   return rp(action, data).then(r => { const js = JSON.stringify(r.data); if (!hit || JSON.stringify(hit.d) !== js) live(r.data, false); S.cache[k] = { t: Date.now(), d: r.data }; if (js.length < 400000) LS.s(k, JSON.stringify(S.cache[k])); return r.data; }).catch(e => { if (!hit) { if (t === S.rt) errView(e.message, () => go(S.route, S.param)); } else toast(e.message, 'err'); });
+}
+/* ===== Prefetch: data menu berikutnya diambil sebelum diklik → pindah menu tanpa jeda =====
+   PRE[route] = param => [[kunciSwr, aksi, data, ttl, lanjut?], …] — lanjut(data) opsional untuk prefetch tahap kedua. Prefetch memakai jalur baca biasa, jadi beberapa
+   menu digabung dalam satu 'batch' (1 eksekusi server) dan hasilnya langsung dipakai swr() saat menu dibuka. */
+const PRE = {}, _preT = {};
+const ckey = key => 'krp_c_' + (S.me ? S.me.id : 'pub') + '_' + key;
+function cacheSegar(key, ttl) { const k = ckey(key); let h = S.cache[k]; if (!h) { const raw = LS.g(k); if (raw) { try { h = JSON.parse(raw); S.cache[k] = h; } catch (e) { } } } return h && Date.now() - h.t < (ttl || 8000) ? h : null; }
+function simpanCache(key, d) { const k = ckey(key); S.cache[k] = { t: Date.now(), d }; const js = JSON.stringify(S.cache[k]); if (js.length < 400000) LS.s(k, js); }
+function prefetch(route, param) {
+  const f = PRE[route]; if (!f || !API_SIAP || navigator.onLine === false) return;
+  const tag = route + '|' + (param || ''); if (_preT[tag] && Date.now() - _preT[tag] < 15000) return; _preT[tag] = Date.now();
+  let L; try { L = f(param) || []; } catch (e) { return; }
+  L.forEach(x => { if (!x) return; const h = cacheSegar(x[0], x[3] || 15000), lanjut = x[4]; if (h) { if (lanjut) try { lanjut(h.d); } catch (e) { } return; } rp1(x[1], x[2] || {}).then(r => { simpanCache(x[0], r.data); if (lanjut) lanjut(r.data); }).catch(() => { }); });
+}
+// Panitia: setelah panel tampil, data semua menu perannya diambil saat browser senggang (± 1–2 eksekusi server).
+function prefetchPanel() {
+  if (!S.me || S.me.role === 'KONTINGEN' || (S._preP && Date.now() - S._preP < 180000)) return; S._preP = Date.now();
+  const jalan = () => { if (!S.me) return; (NAV_APP[S.me.role] || []).forEach(n => { if (n[0] !== S.route && !(KRP.PRE_BERAT || {})[n[0]]) prefetch(n[0]); }); };
+  if (window.requestIdleCallback) requestIdleCallback(jalan, { timeout: 3000 }); else setTimeout(jalan, 1200);
 }
 function bustCache(prefix) { Object.keys(S.cache).forEach(k => { if (!prefix || k.indexOf(prefix) >= 0) delete S.cache[k]; }); try { Object.keys(localStorage).forEach(k => { if (k.indexOf('krp_c_') === 0 && (!prefix || k.indexOf(prefix) >= 0)) localStorage.removeItem(k); }); } catch (e) { } }
 
@@ -136,20 +156,58 @@ const inp = (name, v, o) => { o = o || {}; return `<input class="k-in" name="${n
 const sel = (name, opts, v, attr) => `<select class="k-in" name="${name}" ${attr || ''}>${opts.map(o => { const a = Array.isArray(o) ? o : [o, o]; return `<option value="${E(a[0])}"${String(a[0]) === String(v) ? ' selected' : ''}>${E(a[1])}</option>`; }).join('')}</select>`;
 function form(el) { const o = {}; (el.elements ? [...el.elements].filter(i => i.name) : $$('[name]', el)).forEach(i => { if (i.type === 'checkbox') o[i.name] = i.checked; else if (i.type === 'radio') { if (i.checked) o[i.name] = i.value; } else o[i.name] = i.value; }); return o; }
 function dz(kind, label, hint, existing) {
-  return `<div class="k-dz${existing ? ' ok' : ''}" data-dz="${kind}"><label><i class="bi ${existing ? 'bi-check-circle' : 'bi-cloud-arrow-up'}"></i><b>${label}</b><small class="dzn">${existing ? 'Berkas sudah ada — unggah untuk mengganti' : (hint || 'PDF / JPG / PNG, maks 5 MB')}</small><input type="file" hidden data-file="${kind}" accept="application/pdf,image/jpeg,image/png,image/webp"></label></div>`;
+  return `<div class="k-dz${existing ? ' ok' : ''}" data-dz="${kind}"><label><i class="bi ${existing ? 'bi-check-circle' : 'bi-cloud-arrow-up'}"></i><b>${label}</b><small class="dzn">${existing ? 'Berkas sudah ada — unggah untuk mengganti' : (hint || 'Foto JPG/PNG (otomatis diperkecil) atau PDF maks 5 MB')}</small><input type="file" hidden data-file="${kind}" accept="application/pdf,image/jpeg,image/png,image/webp"></label></div>`;
 }
-function readFile(file, imgOnly) {
-  return new Promise((res, rej) => {
-    if (!file) return rej(new Error('Berkas tidak dipilih.'));
-    if (file.size > 5 * 1024 * 1024) return rej(new Error('Ukuran berkas maksimal 5 MB.'));
-    if (['application/pdf', 'image/jpeg', 'image/png', 'image/webp'].indexOf(file.type) < 0) return rej(new Error('Format harus PDF, JPG, PNG, atau WEBP.'));
-    if (imgOnly && file.type.indexOf('image/') !== 0) return rej(new Error('Berkas harus berupa gambar.'));
-    const r = new FileReader(); r.onload = () => res({ name: file.name, mime: file.type, b64: String(r.result).split(',')[1] }); r.onerror = () => rej(new Error('Gagal membaca berkas.')); r.readAsDataURL(file);
+const MAKS_BERKAS = 5 * 1024 * 1024, MAKS_FOTO_ASLI = 25 * 1024 * 1024;
+function bacaB64(file) {
+  return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = () => rej(new Error('Gagal membaca berkas.')); r.readAsDataURL(file); });
+}
+// Foto/scan dari HP (3–12 MB) diperkecil di perangkat sebelum dikirim: sisi terpanjang maks 1600 px, JPEG mutu 0,82.
+// Hasil umumnya 200–500 KB: unggah lebih cepat di sinyal lemah dan kuota Google Drive panitia jauh lebih awet. PDF tidak diubah.
+function kompresGambar(file, sisi, mutu) {
+  return new Promise(res => {
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type) || typeof URL === 'undefined' || !URL.createObjectURL) return res(null);
+    const url = URL.createObjectURL(file), img = new Image(), akhir = v => { try { URL.revokeObjectURL(url); } catch (e) { } res(v); };
+    img.onload = () => {
+      try {
+        const k = Math.min(1, sisi / Math.max(img.naturalWidth, img.naturalHeight)), w = Math.max(1, Math.round(img.naturalWidth * k)), h = Math.max(1, Math.round(img.naturalHeight * k));
+        const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d');
+        x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(img, 0, 0, w, h);
+        const d = c.toDataURL('image/jpeg', mutu); akhir(/^data:image\/jpeg/.test(d) ? { b64: d.split(',')[1], mime: 'image/jpeg' } : null);
+      } catch (e) { akhir(null); }
+    };
+    img.onerror = () => akhir(null); img.src = url;
   });
 }
+async function readFile(file, imgOnly, kompres) {
+  if (!file) throw new Error('Berkas tidak dipilih.');
+  if (['application/pdf', 'image/jpeg', 'image/png', 'image/webp'].indexOf(file.type) < 0) throw new Error('Format harus PDF, JPG, PNG, atau WEBP.');
+  const gambar = file.type.indexOf('image/') === 0;
+  if (imgOnly && !gambar) throw new Error('Berkas harus berupa gambar.');
+  if (file.size > (kompres && gambar ? MAKS_FOTO_ASLI : MAKS_BERKAS)) throw new Error(kompres && gambar ? 'Ukuran foto maksimal 25 MB.' : 'Ukuran berkas maksimal 5 MB.');
+  let hasil = file.size <= MAKS_BERKAS ? { name: file.name, mime: file.type, b64: await bacaB64(file) } : null;
+  if (kompres && gambar && (file.size > 400 * 1024 || !hasil)) {
+    const z = await kompresGambar(file, 1600, 0.82);
+    if (z && (!hasil || z.b64.length < hasil.b64.length)) hasil = { name: file.name.replace(/\.[^.]+$/, '') + '.jpg', mime: z.mime, b64: z.b64 };
+  }
+  if (!hasil) throw new Error('Foto terlalu besar dan tidak bisa diperkecil di perangkat ini. Pilih foto maksimal 5 MB.');
+  if (hasil.b64.length * 0.75 > MAKS_BERKAS) throw new Error('Ukuran berkas maksimal 5 MB.');
+  hasil.uk = reqId(); // kunci unggah: dikirim ulang saat koneksi putus → server mengembalikan berkas yang sama (tidak dobel)
+  return hasil;
+}
+// Unggah berkas yang dipilih: maks 3 sekaligus. Berkas yang sudah berhasil terunggah diingat (f.up),
+// jadi bila pengiriman formulir gagal (sinyal/server), mencoba lagi tidak mengunggah ulang.
 async function uploadPending(kinds) {
-  const out = {};
-  for (const k of kinds) { const f = S.files[k]; if (f) { const r = await rp('m.upload', { kind: k, name: f.name, mime: f.mime, b64: f.b64 }); out[k] = { id: r.data.id, sig: r.data.sig }; } }
+  const out = {}, list = kinds.filter(k => S.files[k]); let i = 0, galat = null;
+  const kerja = async () => {
+    while (i < list.length) {
+      const k = list[i++], f = S.files[k];
+      try { if (!f.up) { const r = await rp('m.upload', { kind: k, name: f.name, mime: f.mime, b64: f.b64, uk: f.uk }); f.up = { id: r.data.id, sig: r.data.sig }; } out[k] = f.up; }
+      catch (e) { galat = galat || e; } // berkas lain tetap diselesaikan; yang gagal saja yang diulang nanti
+    }
+  };
+  await Promise.all([kerja(), kerja(), kerja()]);
+  if (galat) throw galat;
   return out;
 }
 /* ===== Unduh Buku Acara & Buku Hasil lengkap ===== */
@@ -185,14 +243,14 @@ function clearTimers() { S.timers.forEach(clearInterval); S.timers = []; }
 /* ===== Router & shell ===== */
 const NAV_PUB = [['home', 'Beranda', 'bi-house'], ['info', 'Info Lomba', 'bi-info-circle'], ['jadwal', 'Jadwal & Start List', 'bi-calendar3'], ['live', 'Hasil Live', 'bi-broadcast'], ['klas', 'Klasemen', 'bi-trophy'], ['rekor', 'Rekor', 'bi-stopwatch'], ['atlet', 'Atlet', 'bi-people'], ['galeri', 'Galeri', 'bi-images'], ['arsip', 'Arsip', 'bi-archive']];
 const NAV_APP = {
-  SUPER_ADMIN: [['a-dash', 'Dashboard', 'bi-speedometer2'], ['a-panduan', 'Panduan Event', 'bi-compass'], ['a-event', 'Event & Nomor Lomba', 'bi-calendar-event'], ['a-fase', 'Tahapan Event', 'bi-signpost-split'], ['a-verif', 'Verifikasi', 'bi-patch-check'], ['a-manual', 'Pendaftaran Manual', 'bi-person-plus'], ['a-png', 'Pengajuan', 'bi-arrow-left-right'], ['a-klaim', 'Klaim Prestasi', 'bi-award'], ['a-akun', 'Akun & Berkas', 'bi-person-vcard'], ['a-jadwal', 'Jadwal Acara', 'bi-clock-history'], ['a-hasil', 'Input Hasil', 'bi-pencil-square'], ['a-wasit', 'Pengesahan Wasit', 'bi-pen'], ['a-impor', 'Impor Hasil Lama', 'bi-file-earmark-arrow-up'], ['a-dok', 'Dokumen & Logo', 'bi-file-earmark-pdf'], ['a-kurasi', 'Kurasi Puspresnas', 'bi-award'], ['a-gal', 'Dokumentasi', 'bi-camera'], ['a-lap', 'Laporan & Excel', 'bi-file-earmark-spreadsheet'], ['a-cfg', 'Pengaturan Web', 'bi-gear'], ['a-usr', 'Pengguna', 'bi-person-gear'], ['a-aud', 'Log Audit', 'bi-journal-text'], ['a-ars', 'Tutup Event & Arsip', 'bi-archive'], ['a-sistem', 'Sistem & Migrasi', 'bi-hdd-network']],
+  SUPER_ADMIN: [['a-dash', 'Dashboard', 'bi-speedometer2'], ['a-panduan', 'Panduan Event', 'bi-compass'], ['a-event', 'Event & Nomor Lomba', 'bi-calendar-event'], ['a-fase', 'Tahapan Event', 'bi-signpost-split'], ['a-verif', 'Verifikasi', 'bi-patch-check'], ['a-manual', 'Pendaftaran Manual', 'bi-person-plus'], ['a-png', 'Pengajuan', 'bi-arrow-left-right'], ['a-klaim', 'Klaim Prestasi', 'bi-award'], ['a-akun', 'Akun & Berkas', 'bi-person-vcard'], ['a-nomor', 'Nomor Peserta', 'bi-list-check'], ['a-jadwal', 'Jadwal Acara', 'bi-clock-history'], ['a-hasil', 'Input Hasil', 'bi-pencil-square'], ['a-wasit', 'Pengesahan Wasit', 'bi-pen'], ['a-impor', 'Impor Hasil Lama', 'bi-file-earmark-arrow-up'], ['a-dok', 'Dokumen & Logo', 'bi-file-earmark-pdf'], ['a-kurasi', 'Kurasi Puspresnas', 'bi-award'], ['a-gal', 'Dokumentasi', 'bi-camera'], ['a-lap', 'Laporan & Excel', 'bi-file-earmark-spreadsheet'], ['a-cfg', 'Pengaturan Web', 'bi-gear'], ['a-usr', 'Pengguna', 'bi-person-gear'], ['a-aud', 'Log Audit', 'bi-journal-text'], ['a-ars', 'Tutup Event & Arsip', 'bi-archive'], ['a-sistem', 'Sistem & Migrasi', 'bi-hdd-network']],
   VERIFIKATOR: [['a-dash', 'Dashboard', 'bi-speedometer2'], ['a-verif', 'Verifikasi', 'bi-patch-check'], ['a-png', 'Pengajuan', 'bi-arrow-left-right'], ['a-klaim', 'Klaim Prestasi', 'bi-award'], ['a-lap', 'Laporan', 'bi-bar-chart']],
   OPERATOR_LAPANGAN: [['a-hasil', 'Input Hasil', 'bi-pencil-square'], ['a-gal', 'Dokumentasi', 'bi-camera']],
   WASIT_UTAMA: [['a-wasit', 'Pengesahan Wasit', 'bi-pen']],
   KONTINGEN: [['m-dash', 'Beranda Akun', 'bi-house'], ['m-nomor', 'Daftar Nomor Lomba', 'bi-plus-circle'], ['m-baru', 'Tambah Atlet Baru', 'bi-person-plus'], ['m-png', 'Pengajuan Perubahan', 'bi-arrow-left-right'], ['m-akun', 'Akun Saya', 'bi-person-circle']]
 };
 const isApp = r => /^[am]-/.test(r);
-const ADMIN_JS = 'js/admin.js?v=' + (KCFG.VERSI || '2');
+const ADMIN_JS = 'js/admin.js?v=2.1.0-f2881329';
 function muatAdmin() { if (!S._adm) S._adm = loadScript(ADMIN_JS).then(() => { if (!V['a-dash']) throw new Error('Modul admin tidak lengkap.'); S._admOK = true; }).catch(e => { S._adm = null; throw e; }); return S._adm; }
 function go(route, param, noPush) {
   if (isApp(route) && !S.me) { route = 'login'; param = null; }
@@ -206,6 +264,7 @@ function go(route, param, noPush) {
   shell(); const f = V[route] || V.home; $('#main').innerHTML = skel();
   try { f(param); } catch (e) { console.error(e); errView('Terjadi kesalahan tampilan: ' + e.message, () => go(route, param)); }
   window.scrollTo(0, 0); const sd = $('#side'); if (sd) sd.classList.remove('open');
+  if (app && S.me && S.me.role !== 'KONTINGEN' && S._admOK) setTimeout(prefetchPanel, 900);
   try { const h = '#/' + route + (param ? '/' + encodeURIComponent(param) : ''); if (location.hash !== h) { if (noPush === 'r' || noPush) history.replaceState(null, '', h); else history.pushState(null, '', h); } } catch (e) { }
 }
 function shell() {
@@ -220,7 +279,7 @@ function shell() {
     $('#foot').innerHTML = `<div class="k-wrap"><div class="fg"><div>${brand}<p>${E(c.tagline || '')}</p></div><div><h4>Navigasi</h4>${NAV_PUB.slice(0, 5).map(n => `<a href="#" data-go="${n[0]}">${n[1]}</a>`).join('')}</div><div><h4>Ikuti Kami</h4>${sm.map(x => `<a href="${E(c[x[0]])}" target="_blank" rel="noopener"><i class="bi ${x[1]}"></i> ${E(handle(c[x[0]]))}</a>`).join('')}</div><div><h4>Kontak</h4>${c.kontak_email ? `<span><i class="bi bi-envelope"></i> ${E(c.kontak_email)}</span>` : ''}${c.kontak_telp ? `<span><i class="bi bi-telephone"></i> ${E(c.kontak_telp)}</span>` : ''}<span><i class="bi bi-geo-alt"></i> ${E(c.lokasi || '')}</span></div></div>${(B.logos || []).length ? `<div class="wlogos">${B.logos.map(l => `<img src="${logoUrl(l.id)}" alt="${E(l.nama)}" title="${E(l.nama)}" loading="lazy">`).join('')}</div>` : ''}<div class="fb"><span>© ${new Date().getFullYear()} ${E(name)}</span></div></div>`;
   } else {
     const nav = NAV_APP[S.me.role] || [];
-    $('#side').innerHTML = `<div class="brand sb">${brandImg}<span><b>${E(name)}</b><small>${E(ROLE_L[S.me.role])}</small></span></div><nav>${nav.map(n => `<a class="sl${S.route === n[0] || (S.route === 'm-atlet' && n[0] === 'm-dash') || (S.route === 'a-evform' && n[0] === 'a-event') ? ' on' : ''}" href="#" data-go="${n[0]}"><i class="bi ${n[2]}"></i>${n[1]}</a>`).join('')}</nav><a class="sl" href="#" data-go="home"><i class="bi bi-globe"></i>Lihat Portal Publik</a><a class="sl" href="#" data-act="logout"><i class="bi bi-box-arrow-left"></i>Keluar</a>`;
+    $('#side').innerHTML = `<div class="brand sb">${brandImg}<span><b>${E(name)}</b><small>${E(ROLE_L[S.me.role])}</small></span></div><nav>${nav.map(n => `<a class="sl${S.route === n[0] || (S.route === 'm-atlet' && n[0] === 'm-dash') || (S.route === 'a-evform' && n[0] === 'a-event') ? ' on' : ''}" href="#" data-go="${n[0]}"><i class="bi ${n[2]}"></i>${n[1]}</a>`).join('')}</nav><a class="sl" href="#" data-go="home"><i class="bi bi-globe"></i>Lihat Portal Publik</a>${S.me.role !== 'KONTINGEN' && !S.me.darurat && S.me.id !== 'darurat' ? '<a class="sl" href="#" data-act="sandi-saya"><i class="bi bi-key"></i>Ganti kata sandi</a>' : ''}<a class="sl" href="#" data-act="logout"><i class="bi bi-box-arrow-left"></i>Keluar</a>`;
     const cur = nav.filter(n => n[0] === (S.route === 'a-evform' ? 'a-event' : S.route))[0];
     $('#appbar').innerHTML = `<button class="k-ibtn burger" data-act="burger" aria-label="Menu"><i class="bi bi-list"></i></button><h2>${E(cur ? cur[1] : 'Panel')}</h2><div class="ab-r">${th}<div class="ab-u"><span class="k-av ph" style="width:34px;height:34px">${E(initials(S.me.nama))}</span><div class="sm"><b>${E(S.me.nama)}</b><br><span class="mut">${E(ROLE_L[S.me.role])}</span></div></div></div>`;
   }
@@ -229,18 +288,27 @@ function logout(expired) { S.me = null; S.token = null; LS.d('krp_t'); LS.d('krp
 function setSession(token, me) { S.token = token; S.me = me; LS.s('krp_t', token); LS.s('krp_me', JSON.stringify(me)); }
 const home = () => S.me ? (S.me.role === 'KONTINGEN' ? 'm-dash' : NAV_APP[S.me.role][0][0]) : 'home';
 
+/* ===== Prefetch berdasarkan niat: kursor berhenti di menu, jari menyentuh, atau fokus keyboard ===== */
+let _niatT = 0;
+const tautanGo = e => e.target && e.target.closest ? e.target.closest('[data-go]') : null;
+document.addEventListener('pointerover', e => { const g = tautanGo(e); if (!g || e.pointerType === 'touch') return; clearTimeout(_niatT); _niatT = setTimeout(() => prefetch(g.dataset.go, g.dataset.p || null), 70); }, { passive: true });
+document.addEventListener('pointerout', e => { if (tautanGo(e)) clearTimeout(_niatT); }, { passive: true });
+document.addEventListener('touchstart', e => { const g = tautanGo(e); if (g) prefetch(g.dataset.go, g.dataset.p || null); }, { passive: true });
+document.addEventListener('focusin', e => { const g = tautanGo(e); if (g) prefetch(g.dataset.go, g.dataset.p || null); });
+
 /* ===== Delegasi event ===== */
 document.addEventListener('click', e => {
   const g = e.target.closest('[data-go]'); if (g) { e.preventDefault(); go(g.dataset.go, g.dataset.p || null); return; }
   const a = e.target.closest('[data-act]'); if (!a) return;
   const f = ACT[a.dataset.act]; if (f) { if (a.tagName === 'A') e.preventDefault(); f(a, e); }
 });
+SUBMIT['sandi-saya'] = async f => { const d = form(f), b = $('button.k-orange', f); if (d.baru !== d.ulang) return toast('Ulangi kata sandi tidak sama.', 'err'); busy(b, true); try { const r = await rp('me.sandi', { lama: d.lama, baru: d.baru }); setSession(r.data.token, S.me); closeModal(); toast(r.message); } catch (e) { toast(e.message, 'err'); busy(b, false); } };
 document.addEventListener('submit', e => { const f = e.target.closest('[data-submit]'); if (!f) return; e.preventDefault(); const h = SUBMIT[f.dataset.submit]; if (h) h(f, e); });
 document.addEventListener('input', e => { const i = e.target.closest('[data-in]'); if (i && INP[i.dataset.in]) INP[i.dataset.in](i, e); });
 document.addEventListener('change', async e => {
   const f = e.target.closest('[data-file]'); if (f) {
     const box = f.closest('.k-dz'), kind = f.dataset.file, img = f.dataset.img === '1';
-    try { const r = await readFile(f.files[0], img); S.files[kind] = r; box.classList.remove('err'); box.classList.add('ok'); $('.dzn', box).textContent = r.name; $('i', box).className = 'bi bi-check-circle'; if (f.dataset.after && INP[f.dataset.after]) INP[f.dataset.after](f, e); }
+    try { const r = await readFile(f.files[0], img, true); S.files[kind] = r; box.classList.remove('err'); box.classList.add('ok'); $('.dzn', box).textContent = r.name; $('i', box).className = 'bi bi-check-circle'; if (f.dataset.after && INP[f.dataset.after]) INP[f.dataset.after](f, e); }
     catch (x) { delete S.files[kind]; box.classList.remove('ok'); box.classList.add('err'); $('.dzn', box).textContent = x.message; toast(x.message, 'err'); }
     return;
   }
@@ -251,10 +319,11 @@ Object.assign(ACT, {
   mx() { if (S.askRes) S.askRes(false); else closeModal(); }, 'ask-y'() { if (S.askRes) S.askRes(true); }, 'ask-n'() { if (S.askRes) S.askRes(false); },
   retry() { if (S.retry) S.retry(); else go(S.route, S.param); },
   theme() { const d = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = d; LS.s('krp_th', d); shell(); },
-  burger() { $('#side').classList.toggle('open'); }, logout() { ask('Keluar dari akun ini?', 'Keluar').then(y => { if (y) { logout(false); toast('Anda telah keluar.'); } }); }
+  burger() { $('#side').classList.toggle('open'); },
+  'sandi-saya'() { $('#side').classList.remove('open'); modal('Ganti kata sandi saya', `<form data-submit="sandi-saya" autocomplete="off"><p class="sm">Akun: <b>${E(S.me.nama)}</b> · ${E(ROLE_L[S.me.role] || '')}</p>${field('Kata sandi lama', '<input class="k-in" type="password" name="lama" autocomplete="current-password" required>', 1)}${field('Kata sandi baru', '<input class="k-in" type="password" name="baru" minlength="8" autocomplete="new-password" required>', 1, 'Minimal 8 karakter, berisi huruf dan angka.')}${field('Ulangi kata sandi baru', '<input class="k-in" type="password" name="ulang" minlength="8" autocomplete="new-password" required>', 1)}<p class="mut sm">Perangkat lain yang masuk dengan akun ini akan keluar otomatis.</p><div class="k-bar"><button type="button" class="k-btn k-ghostw" data-act="mx">Batal</button><button class="k-btn k-orange">Simpan</button></div></form>`); }, logout() { ask('Keluar dari akun ini?', 'Keluar').then(y => { if (y) { logout(false); toast('Anda telah keluar.'); } }); }
 });
 
-window.KRP = { Perf, GAS_URL, API_SIAP, muatAdmin, bukuBox, $, $$, E, LS, S, V, ACT, SUBMIT, INP, G_L, ROLE_L, TIPE_L, FASE, FASE_L, ST, pill, rupiah, fdt, jn, jnK, jkDariKelas, feeIdx, kls, evTitle, thumb, logoUrl, handle, initials, cfgv, rp, swr, bustCache, toast, modal, closeModal, ask, busy, ph, card, empty, kpi, alertx, skel, errView, field, inp, sel, form, dz, readFile, uploadPending, dlB64, viewFile, loadScript, xlsx, chart, clearTimers, go, shell, logout, setSession, home, NAV_APP, isApp };
+window.KRP = { PRE, prefetch, prefetchPanel, cacheSegar, simpanCache, Perf, GAS_URL, API_SIAP, muatAdmin, bukuBox, $, $$, E, LS, S, V, ACT, SUBMIT, INP, G_L, ROLE_L, TIPE_L, FASE, FASE_L, ST, pill, rupiah, fdt, jn, jnK, jkDariKelas, feeIdx, kls, evTitle, thumb, logoUrl, handle, initials, cfgv, rp, swr, bustCache, toast, modal, closeModal, ask, busy, ph, card, empty, kpi, alertx, skel, errView, field, inp, sel, form, dz, readFile, uploadPending, dlB64, viewFile, loadScript, xlsx, chart, clearTimers, go, shell, logout, setSession, home, NAV_APP, isApp };
 })();
 
 (function () {
@@ -315,10 +384,12 @@ V.jadwal = function () {
   const B = S.B, byDay = {}; B.events.forEach(e => (byDay[e.hari || 1] = byDay[e.hari || 1] || []).push(e));
   const any = B.events.some(e => e.jam);
   main(`<div class="k-wrap pad">${ph('Jadwal & Start List', `${E(B.cfg.tanggal_teks)} · ${E(B.cfg.lokasi)}`)}${KRP.bukuBox(B.dok)}<br>${any ? alertx('info', 'Jam adalah <b>estimasi otomatis</b> dari jumlah peserta dan seri, dan dapat berubah mengikuti kelancaran lomba.', 'bi-clock') : ''}
-${Object.keys(byDay).sort((a, b) => a - b).map(h => card(dayLabel(h), `<div class="k-scroll"><table class="k-table"><thead><tr><th>No</th><th>Estimasi</th><th>Nomor</th><th>Kelompok</th><th>Seri</th><th></th></tr></thead><tbody>${byDay[h].sort((a, b) => (a.jam || '99') < (b.jam || '99') ? -1 : (a.jam || '99') > (b.jam || '99') ? 1 : a.no - b.no).map(e => { const s = B.st[e.id] || { h: 0, a: 0, s: 'NONE' }; return `<tr><td class="mono">#${e.no}</td><td class="mono">${e.jam ? E(e.jam) + (e.jamS ? '–' + E(e.jamS) : '') : '—'}</td><td><b>${E(e.nama)}</b></td><td>${E(jn(e.jk))} ${G_L[e.g]}</td><td>${s.h || '—'}</td><td style="text-align:right">${s.a ? `<button class="k-btn sm k-outline" data-go="startlist" data-p="${e.id}">Start list</button> <button class="k-btn sm k-navy" data-go="live" data-p="${e.id}">${s.s === 'SAH' ? 'Hasil' : 'Live'}</button>` : '<span class="mut sm">Belum tersedia</span>'}</td></tr>`; }).join('')}</tbody></table></div>`, '', true)).join('') || empty('bi-calendar-x', 'Belum ada nomor lomba.')}</div>`);
+${Object.keys(byDay).sort((a, b) => a - b).map(h => card(dayLabel(h), `<div class="k-scroll"><table class="k-table"><thead><tr><th>No</th><th>Estimasi</th><th>Nomor</th><th>Kelompok</th><th>Seri</th><th></th></tr></thead><tbody>${byDay[h].sort((a, b) => (a.jam || '99') < (b.jam || '99') ? -1 : (a.jam || '99') > (b.jam || '99') ? 1 : a.no - b.no).map(e => { const s = B.st[e.id] || { h: 0, a: 0, s: 'NONE' }; return `<tr><td class="mono">#${e.no}</td><td class="mono">${e.jam ? E(e.jam) + (e.jamS ? '–' + E(e.jamS) : '') : '—'}</td><td><b>${E(e.nama)}</b></td><td>${E(jn(e.jk))} ${G_L[e.g]}</td><td>${s.h || '—'}</td><td style="text-align:right">${s.a ? `<button class="k-btn sm k-outline" data-go="startlist" data-p="${e.id}">Start list</button> <button class="k-btn sm k-navy" data-go="live" data-p="${e.id}">${s.s === 'SAH' ? 'Hasil' : 'Live'}</button>` : '<span class="mut sm">Belum tersedia</span>'}</td></tr>${(e.ist || []).map(b => `<tr style="background:var(--gold,#FFF7DC)"><td colspan="6"><i class="bi bi-cup-hot"></i> <b>${E(b.label)}</b> — ${b.menit} menit · <span class="mono">${E(b.mulai)}–${E(b.selesai)}</span></td></tr>`).join('')}`; }).join('')}</tbody></table></div>`, '', true)).join('') || empty('bi-calendar-x', 'Belum ada nomor lomba.')}</div>`);
 };
+const idStart = () => { const B = S.B || { events: [], st: {} }; return (B.events.filter(e => B.st[e.id] && B.st[e.id].a > 0)[0] || B.events[0] || {}).id; };
+const idLive = () => { const B = S.B || { events: [], st: {} }; return (B.events.filter(e => B.st[e.id] && B.st[e.id].s !== 'NONE')[0] || B.events.filter(e => B.st[e.id] && B.st[e.id].a > 0)[0] || B.events[0] || {}).id; };
 V.startlist = function (id) {
-  const B = S.B; id = id || (B.events.filter(e => B.st[e.id] && B.st[e.id].a > 0)[0] || B.events[0] || {}).id;
+  const B = S.B; id = id || idStart();
   if (!id) return main(`<div class="k-wrap pad">${empty('bi-list-ol', 'Belum ada nomor lomba.')}</div>`);
   swr('sl_' + id, 'pub.start', { id }, d => {
     const e = d.event;
@@ -330,7 +401,7 @@ ${d.heats.length ? d.heats.map(h => card(`Seri ${h.n} dari ${d.heats.length}`, `
 const liveDetik = () => Math.max(15, Math.min(300, Number(cfgv('live_detik')) || 30));
 ACT['live-now'] = a => { busy(a, true); Promise.resolve(S.liveNow && S.liveNow()).then(() => busy(a, false)); };
 V.live = function (id) {
-  const B = S.B; id = id || (B.events.filter(e => B.st[e.id] && B.st[e.id].s !== 'NONE')[0] || B.events.filter(e => B.st[e.id] && B.st[e.id].a > 0)[0] || B.events[0] || {}).id;
+  id = id || idLive(); S.param = id;
   if (!id) return main(`<div class="k-wrap pad">${empty('bi-broadcast', 'Belum ada nomor lomba.')}</div>`);
   const draw = d => {
     const e = d.event, top3 = d.rows.filter(r => r.rank && r.rank <= 3 && r.st === 'OK');
@@ -341,10 +412,13 @@ ${d.rows.length ? card('Hasil', `<div class="k-scroll"><table class="k-table"><t
   };
   // Polling hemat: jeda diatur panitia (bawaan 30 dtk) + acak ±20%, berhenti saat tab tidak dilihat, melambat saat server ramai.
   let gagal = 0, jedaSrv = 0;
-  const tarik = () => rp('pub.live', { id }).then(x => { gagal = 0; jedaSrv = Number(x.data && x.data.jeda) || 0; if (S.route === 'live' && S.param === id) draw(x.data); }).catch(() => { gagal = Math.min(gagal + 1, 3); });
+  const ck = 'live_' + id, c0 = KRP.cacheSegar(ck, 600000); let terakhir = c0 ? JSON.stringify(c0.d) : '';
+  const tampil = d => { KRP.simpanCache(ck, d); const js = JSON.stringify(d); if (js === terakhir && $('.k-livebar')) return; terakhir = js; draw(d); };
+  if (c0) draw(c0.d); // salinan terakhir langsung tampil, lalu diperbarui dari server
+  const tarik = () => rp('pub.live', { id }).then(x => { gagal = 0; jedaSrv = Number(x.data && x.data.jeda) || 0; if (S.route === 'live' && S.param === id) tampil(x.data); }).catch(() => { gagal = Math.min(gagal + 1, 3); });
   const jadwal = () => { const ms = Math.max(liveDetik(), jedaSrv) * 1000 * Math.pow(2, gagal) * (0.8 + Math.random() * 0.4); S.timers.push(setTimeout(() => { if (S.route !== 'live' || S.param !== id) return; if (document.hidden) return jadwal(); tarik().then(jadwal); }, ms)); };
   S.liveNow = () => tarik();
-  rp('pub.live', { id }).then(r => { jedaSrv = Number(r.data && r.data.jeda) || 0; if (S.route === 'live') { draw(r.data); jadwal(); } }).catch(e => KRP.errView(e.message, () => go('live', id)));
+  rp('pub.live', { id }).then(r => { jedaSrv = Number(r.data && r.data.jeda) || 0; if (S.route === 'live' && S.param === id) { tampil(r.data); jadwal(); } }).catch(e => { if (!c0) KRP.errView(e.message, () => go('live', id)); else { toast(e.message, 'err'); jadwal(); } });
 };
 
 /* ===== Klasemen, rekor ===== */
@@ -482,6 +556,14 @@ SUBMIT.daftar = async f => {
   try { if (d.tipe !== 'MANDIRI' && !S.files.mandat) throw new Error('Surat mandat/SK wajib diunggah.'); const r = await rp('auth.daftar', Object.assign({}, d, { mandat: S.files.mandat })); toast(r.message); go('login'); }
   catch (e) { toast(e.message, 'err'); busy(b, false); }
 };
+/* ===== Prefetch menu publik (dipicu niat: kursor/jari di tautan) ===== */
+Object.assign(KRP.PRE, {
+  klas: () => (S.klasMode || 'tahun') === 'tahun' ? [['klt_' + (S.klasTh || 'kini'), 'pub.klas.tahun', S.klasTh ? { tahun: S.klasTh } : {}, 30000]] : [['klas', 'pub.klas', {}, 30000]],
+  rekor: () => [['rekor', 'pub.rekor', {}, 60000]], atlet: () => [['atlet', 'pub.atlet', {}, 60000]], galeri: () => [['galeri', 'pub.galeri', {}, 60000]], arsip: () => [['klas', 'pub.klas', {}, 30000]],
+  startlist: id => { id = id || idStart(); return id ? [['sl_' + id, 'pub.start', { id }, 30000]] : []; },
+  live: id => { id = id || idLive(); return id ? [['live_' + id, 'pub.live', { id }, 15000]] : []; },
+  profil: id => id ? [['pf_' + id, 'pub.profil', { id }, 60000]] : []
+});
 })();
 
 (function () {
@@ -537,6 +619,7 @@ function infKel() {
   return `<div class="k-card"><div class="k-card-h"><h3>${k.huruf ? 'Kelompok ' + E(k.huruf) + ' · ' : ''}${E(k.nama)}</h3><span class="mut sm">${k.nomor.length} nomor</span></div><div class="k-scroll"><table class="k-table"><thead><tr><th>Nomor lomba</th><th>Putra</th><th>Putri</th><th>Hari</th></tr></thead><tbody>${ord.map(key => { const g = grp[key], a = g.PUTRA || g.PUTRI; return `<tr><td><b>${a.d} m ${E(a.s.replace('Gaya ', 'Gaya '))}</b></td><td>${g.PUTRA ? `<span class="mono">#${g.PUTRA.no}</span> ${stt(g.PUTRA)}` : '<span class="mut">—</span>'}</td><td>${g.PUTRI ? `<span class="mono">#${g.PUTRI.no}</span> ${stt(g.PUTRI)}` : '<span class="mut">—</span>'}</td><td>${a.hari ? 'Hari ' + a.hari : ''}</td></tr>`; }).join('')}</tbody></table></div></div>`;
 }
 ACT['inf-k'] = a => { S.ik = a.dataset.v; $$('.inf-kchips .k-chip').forEach(c => c.classList.toggle('on', c === a)); $('#inf-kel').innerHTML = infKel(); };
+KRP.PRE.info = () => [['pev', 'pub.event', {}, 60000]];
 })();
 
 (function () {
@@ -729,6 +812,7 @@ V['m-akun'] = function () {
 <form class="k-card" data-submit="sandi"><div class="k-card-h"><h3>Ganti kata sandi</h3></div><div class="k-card-b">${field('Kata sandi lama', '<input class="k-in" type="password" name="lama" required autocomplete="current-password">', 1)}${field('Kata sandi baru', '<input class="k-in" type="password" name="baru" required minlength="8" autocomplete="new-password">', 1, 'Minimal 8 karakter, huruf dan angka.')}<div class="k-bar"><button class="k-btn k-navy">Simpan</button></div></div></form></div></div>`); });
 };
 SUBMIT.sandi = async f => { const b = $('button', f), d = form(f); busy(b, true); try { const r = await rp('me.sandi', d); setSession(r.data.token, S.me); toast(r.message); f.reset(); } catch (e) { toast(e.message, 'err'); } busy(b, false); };
+['m-dash', 'm-nomor', 'm-baru', 'm-png', 'm-akun'].forEach(r => { KRP.PRE[r] = () => [['mboot', 'm.boot', {}, 5000]]; });
 })();
 
 (function () {
@@ -795,7 +879,18 @@ window.addEventListener('popstate', () => { const h = dariHash(); if (h && rutBo
 window.addEventListener('offline', () => toast('Anda sedang offline. Data terakhir tetap ditampilkan.', 'warn'));
 window.addEventListener('online', () => { toast('Koneksi kembali.'); if (!document.querySelector('#main form') && !isApp(S.route)) go(S.route, S.param, 'r'); });
 // PWA: service worker untuk cangkang aplikasi (bukan untuk data API)
-if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { }); });
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { }); });
+  // Versi baru aplikasi sudah terunduh di latar → tawarkan muat ulang (tidak memaksa, isian yang sedang diketik aman)
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (!e.data || e.data.krp !== 'versi-baru' || document.getElementById('k-upd')) return;
+    const b = document.createElement('div'); b.id = 'k-upd'; b.className = 'k-upd'; b.setAttribute('role', 'status');
+    b.innerHTML = '<i class="bi bi-arrow-repeat"></i><span>Versi baru aplikasi tersedia.</span><button class="k-btn sm k-orange" type="button">Muat ulang</button><button class="k-ibtn" type="button" aria-label="Tutup"><i class="bi bi-x"></i></button>';
+    b.querySelector('.k-orange').onclick = () => location.reload(); b.querySelector('.k-ibtn').onclick = () => b.remove(); document.body.appendChild(b);
+  });
+  try { navigator.serviceWorker.startMessages(); } catch (e) { }
+  setTimeout(() => { const c = navigator.serviceWorker.controller; if (c) c.postMessage({ krp: 'tanya' }); }, 2500);
+}
 KRP.resetLokal = resetLokal;
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

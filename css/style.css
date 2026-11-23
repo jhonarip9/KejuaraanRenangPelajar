@@ -1,4 +1,4 @@
-/* KRP Pro v2.0.0 — gaya tampilan. Dibuat otomatis oleh tools/build.js dari folder src/. Jangan diedit langsung. */
+/* KRP Pro v2.1.0 — gaya tampilan. Dibuat otomatis oleh tools/build.js dari folder src/. Jangan diedit langsung. */
 :root{--pri:#0B3B6F;--pri-d:#061E3C;--aqua:#0EA5C6;--ora:#FF6B2C;--ora-h:#E8571A;--gold:#FFC23D;--bg:#fff;--surf:#EEF6FA;--card:#fff;--tx:#0B1F33;--tx2:#4A6072;--ln:#D6E4EC;--ok:#1E8E5A;--ok-b:#E3F4EC;--wn:#B26A00;--wn-b:#FFF4DB;--er:#C0392B;--er-b:#FDECEA;--in:#1B7F9E;--in-b:#E0F2F7;--nu:#64748B;--nu-b:#F1F5F9;--silver:#9AA8B5;--bronze:#B07A4A;--r:12px;--r2:8px;--sh:0 1px 3px rgba(10,61,98,.06),0 4px 12px rgba(10,61,98,.04);--mono:'JetBrains Mono',ui-monospace,monospace;--focus:0 0 0 3px rgba(27,127,158,.35)}
 [data-theme=dark]{--bg:#071A2B;--surf:#0C2238;--card:#0E2740;--tx:#E6F2FF;--tx2:#9DB4C8;--ln:#1E3C58;--ok-b:#10372B;--wn-b:#3A2D0E;--er-b:#3B1B18;--in-b:#0F3444;--nu-b:#16283A;--nu:#94A3B8;--sh:0 1px 3px rgba(0,0,0,.4)}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--tx);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
@@ -259,3 +259,31 @@ body[data-shell=app] #main{margin-left:260px}
 /* KRP Pro */
 .mig-g{display:flex;flex-direction:column;gap:2px;margin:8px 0}.k-offline{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);z-index:60}
 
+
+/* Pemberitahuan versi baru (service worker) */
+.k-upd{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 76px);z-index:90;display:flex;align-items:center;gap:10px;background:var(--navy,#0B3B6F);color:#fff;padding:8px 10px 8px 14px;border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:14px;max-width:calc(100% - 24px)}
+.k-upd .k-ibtn{color:#fff;background:transparent;border:0}
+@media (min-width:900px){.k-upd{bottom:24px}}
+.sec-list span{flex:0 1 auto}.sec-list li>span:first-child{flex:1;min-width:0}.sec-list b{font-family:inherit;font-size:inherit;min-width:0}.sec-list li>:last-child{text-align:right}
+/* Susun acara: urutan bisa diketik, tanda nomor yang akan dilewati, simulasi program */
+.sa-no{display:flex;flex-direction:column;align-items:center;gap:2px}.sa-pos{width:58px;padding:4px 6px;text-align:center;font-weight:700}
+.sa-it.skip{opacity:.62}.sa-it.skip .sa-b b{text-decoration:line-through;text-decoration-color:var(--mut,#7a8a99)}.sa-skip{color:var(--warn,#b45309);font-weight:600}
+.sim-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}.sim-g .k-f small{display:block}
+.sa-kpi .bad{color:var(--err,#b91c1c)}.sim-t td{vertical-align:middle}.sim-t tr.mut td{color:var(--mut,#7a8a99)}.sim-ist td{background:var(--gold,#FFF7DC)}
+/* v2.1 — Database & kuota Supabase (Sistem) */
+.sb-top{display:flex;flex-wrap:wrap;gap:10px 28px;margin-bottom:12px}.sb-top>div{display:flex;flex-direction:column;gap:4px;min-width:0}.sb-top code{word-break:break-all}
+.sb-q{border:1px solid var(--ln);border-radius:var(--r2);padding:12px 14px;margin-bottom:12px}.sb-qh{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}.sb-pk{width:auto;display:inline-block;padding:4px 8px;margin-left:6px}
+.sb-m{margin:8px 0 12px}.sb-mh{display:flex;justify-content:space-between;gap:8px;font-size:13px;flex-wrap:wrap}.sb-m .k-prog{margin:6px 0 3px}.k-prog i.warn{background:var(--wn)}.k-prog i.err{background:var(--er)}
+.sb-det{margin:4px 0 10px}.sb-det summary{cursor:pointer;font-weight:600;font-size:13px;padding:6px 0}
+/* v2.1 — Nomor Lomba Peserta */
+.np-f{display:grid;grid-template-columns:2fr repeat(4,minmax(0,1fr));gap:8px}.np-f .k-in{min-width:0}
+.np-sum{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin:14px 0 10px;font-size:13px}.np-sum .k-btn{margin-left:auto}
+.np-a{margin-bottom:10px}.np-ah{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start}.np-n{display:flex;gap:10px;align-items:center;font-size:13px}
+.np-el{margin-top:8px;border-top:1px dashed var(--ln)}.np-e{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--ln);flex-wrap:wrap}.np-e.off{opacity:.75}
+.np-en{min-width:0;flex:1 1 260px}.np-tag{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;align-items:center}.np-seed{font-size:12px;background:var(--surf);border-radius:6px;padding:1px 7px}
+.np-ea{display:flex;gap:6px;flex-wrap:wrap}.np-form{background:var(--surf);border-radius:var(--r2);padding:10px 12px;margin:6px 0 8px;display:flex;flex-direction:column;gap:8px}
+.np-fr{display:grid;grid-template-columns:2fr 1fr;gap:8px}.np-ck{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:2px 16px}.np-form .k-bar{margin:0}
+@media (max-width:760px){.np-f{grid-template-columns:1fr 1fr}.np-f .k-in:first-child{grid-column:1/-1}.np-fr{grid-template-columns:1fr}.np-sum .k-btn{margin-left:0}.np-ea .k-btn{flex:1}}
+/* v2.1 — Susun ulang dari awal */
+.sa-fin{color:var(--ora);font-weight:700}.sa-ul{display:flex;flex-direction:column;gap:10px}.sa-op{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--ln);border-radius:var(--r2);padding:10px 12px;cursor:pointer}.sa-op:has(input:checked){border-color:var(--aqua);background:var(--in-b)}.sa-op input{margin-top:3px}.sa-op span{display:flex;flex-direction:column;gap:2px}.sa-op small{color:var(--tx2);font-size:12px}.sa-pola{display:grid;grid-template-columns:2fr 1fr;gap:8px;padding:0 4px}.sa-pola .k-check1{grid-column:1/-1}
+@media (max-width:560px){.sa-pola{grid-template-columns:1fr}}

@@ -1,4 +1,4 @@
-/* KRP Pro v2.0.0 — modul panitia (dimuat saat dibutuhkan). Dibuat otomatis oleh tools/build.js dari folder src/. Jangan diedit langsung. */
+/* KRP Pro v2.1.0 — modul panitia (dimuat saat dibutuhkan). Dibuat otomatis oleh tools/build.js dari folder src/. Jangan diedit langsung. */
 (function () {
 'use strict';
 const { $, $$, E, S, V, ACT, SUBMIT, INP, G_L, TIPE_L, FASE, FASE_L, pill, rupiah, fdt, jn, kls, evTitle, thumb, initials, rp, swr, bustCache, toast, modal, closeModal, ask, busy, ph, card, empty, kpi, alertx, field, inp, sel, form, viewFile, go, chart } = KRP;
@@ -50,11 +50,12 @@ SUBMIT.kontak = async f => { const b = $('button.k-orange', f), d = form(f); bus
 /* ===== Tahapan event ===== */
 V['a-fase'] = function () {
   swr('afase', 'fase.get', {}, d => {
+    S.jdOto = d.oto || S.jdOto;
     const i = FASE.indexOf(d.fase), nm = d.nomorStart;
     const step = (k, t, ds) => { const j = FASE.indexOf(k), cls = j < i ? 'done' : j === i ? 'cur' : ''; return `<li class="${cls}"><span>${j < i ? '<i class="bi bi-check-lg"></i>' : j + 1}</span><div><h4>${t}</h4><p class="mut sm">${ds}</p></div></li>`; };
     main(`<div class="k-wrap pad">${ph('Tahapan Event', `Musim ${E(d.musim)} — kendalikan alur dari pendaftaran sampai pelaksanaan`)}
 <div class="k-kpis">${kpi('Tahap saat ini', E(FASE_L[d.fase]), 'bi-signpost-split')}${kpi('Atlet terdaftar', d.atlet, 'bi-people')}${kpi('Perlu diproses', d.menunggu, 'bi-hourglass-split', 'menunggu / revisi')}${kpi('Nomor bersusun', nm, 'bi-list-ol')}</div>
-<ol class="k-stepper">${step('PENDAFTARAN', 'Pendaftaran', d.buka ? 'Dibuka' + (d.deadline ? ' sampai ' + fdt(d.deadline) : '') + '. Akun dapat mendaftarkan atlet & nomor.' : 'Ditutup — tidak ada pendaftar baru.')}${step('VERIFIKASI', 'Verifikasi', 'Admin Pendaftaran memeriksa berkas dan pembayaran.')}${step('STARTLIST', 'Start list', 'Seeding otomatis (spearhead) hanya dari peserta sah dan lunas.')}${step('BUKU_ACARA', 'Buku acara', 'Buku acara terbit di portal dengan estimasi jam tiap nomor.')}${step('PELAKSANAAN', 'Pelaksanaan', 'Admin Input Data mengisi hasil, Wasit mengesahkan dengan tanda tangan.')}${step('SELESAI', 'Selesai & arsip', 'Tutup event dan arsipkan musim.')}</ol>
+<ol class="k-stepper">${step('PENDAFTARAN', 'Pendaftaran', d.buka ? 'Dibuka' + (d.deadline ? ' sampai ' + fdt(d.deadline) : '') + '. Akun dapat mendaftarkan atlet & nomor.' : 'Ditutup — tidak ada pendaftar baru.')}${step('VERIFIKASI', 'Verifikasi', 'Admin Pendaftaran memeriksa berkas dan pembayaran.')}${step('STARTLIST', 'Start list', 'Seeding otomatis (spearhead) hanya dari peserta sah dan lunas. Nomor acara final diterapkan dari susunan acara (lihat Simulasi program).')}${step('BUKU_ACARA', 'Buku acara', 'Buku acara terbit di portal dengan estimasi jam tiap nomor.')}${step('PELAKSANAAN', 'Pelaksanaan', 'Admin Input Data mengisi hasil, Wasit mengesahkan dengan tanda tangan.')}${step('SELESAI', 'Selesai & arsip', 'Tutup event dan arsipkan musim.')}</ol>
 <div class="k-card"><div class="k-card-h"><h3>Tindakan</h3></div><div class="k-card-b" id="fase-act">${faseAct(d)}</div></div></div>`);
   }, 3000);
 };
@@ -68,7 +69,7 @@ function faseAct(d) {
   return '<p>Event telah diselesaikan dan diarsipkan.</p>';
 }
 ACT.fase = async a => {
-  const ke = a.dataset.ke, em = $('#fase-email') && $('#fase-email').checked, T = { VERIFIKASI: 'Tutup pendaftaran sekarang? Setelah ditutup tidak ada peserta yang bisa mendaftar lagi.', STARTLIST: 'Susun start list dari peserta sah dan lunas?', BUKU_ACARA: 'Terbitkan buku acara ke portal publik?', PELAKSANAAN: 'Mulai pelaksanaan? Input hasil akan dibuka.' };
+  const ke = a.dataset.ke, em = $('#fase-email') && $('#fase-email').checked, T = { VERIFIKASI: 'Tutup pendaftaran sekarang? Setelah ditutup tidak ada peserta yang bisa mendaftar lagi.', STARTLIST: 'Susun start list dari peserta sah dan lunas?' + ({ KOSONG: ' Nomor acara final ikut diterapkan: nomor tanpa peserta dilewati dan acara dinomori #1, #2, … sesuai susunan acara.', MINIMAL: ' Nomor acara final ikut diterapkan: nomor dengan peserta kurang dari minimal dilewati dan acara dinomori #1, #2, … sesuai susunan acara.' }[(S.jdOto || 'KOSONG')] || '') + ' Cek dulu di Jadwal Acara → Simulasi program.', BUKU_ACARA: 'Terbitkan buku acara ke portal publik?', PELAKSANAAN: 'Mulai pelaksanaan? Input hasil akan dibuka.' };
   if (!(await ask(T[ke] || 'Lanjutkan?', 'Ya, lanjutkan'))) return; busy(a, true);
   try { const r = await rp('fase.set', { ke, email: em }); toast(r.message); await refreshAll(); go('a-fase'); } catch (e) { toast(e.message, 'err'); busy(a, false); }
 };
@@ -162,7 +163,7 @@ ACT['akun-open'] = async a => {
   try {
     const d = (await rp('sa.akun.detail', { id: a.dataset.id })).data, k = d.akun, mb = $('#modal .k-mb'); if (!mb) return;
     mb.innerHTML = `<div class="k-card"><div class="k-card-h"><h3>${E(k.nama)}</h3><span><span class="k-pill k-info">${TIPE_L[k.tipe]}</span> <button class="k-btn sm k-orange" data-act="ak-sandi" data-id="${E(k.id)}" data-n="${E(k.nama)}"><i class="bi bi-key"></i> Ganti kata sandi</button></span></div><div class="k-card-b"><dl class="k-dl"><dt>${k.tipe === 'SEKOLAH' ? 'NPSN' : 'Kode / SK / email'}</dt><dd class="mono">${E(k.kode)}</dd><dt>Kab/Kota, provinsi</dt><dd>${E(k.kota)}, ${E(k.prov)}</dd><dt>Alamat</dt><dd>${E(k.alamat)}</dd><dt>Penanggung jawab</dt><dd>${E(k.pj)} ${k.jab ? '(' + E(k.jab) + ')' : ''}</dd><dt>Kontak</dt><dd>${E(k.email)} · ${E(k.telp)} ${wa(k.telp) ? `<a target="_blank" rel="noopener" href="${wa(k.telp)}"><i class="bi bi-whatsapp"></i></a>` : ''}</dd><dt>Terdaftar</dt><dd>${fdt(k.at)}</dd></dl>${k.mandat ? `<button class="k-btn sm k-outline" data-act="akun-file" data-id="${E(k.mandat)}"><i class="bi bi-paperclip"></i> Surat mandat / SK</button>` : ''}</div></div>
-<h4 style="margin:6px 0 10px">Atlet (${d.atlet.length})</h4>${d.atlet.map(t => `<div class="k-card"><div class="k-card-b"><div class="who"><div><b>${E(t.nama)}</b> <span class="mono mut">${E(t.bib)}</span> ${pill(t.st)}<br><small class="mut">NISN ${E(t.nisn)} · ${G_L[t.g]} · ${E(t.tmp)}, ${fdt(t.tgl)} · Kelas ${kls(t.kelas)} · ${E(jn(t.jk))}<br>${E(t.sk)}${t.kl ? ' / ' + E(t.kl) : ''} · ${E(t.wl)} · HP ${E(t.hp)}</small></div></div><div class="k-chips" style="margin:8px 0">${[['foto', 'Foto'], ['akta', 'Akte'], ['surat', 'Surat sekolah'], ['sosmed', 'Bukti follow']].map(x => t[x[0]] ? `<button class="k-chip" data-act="akun-file" data-id="${E(t[x[0]])}"><i class="bi bi-paperclip"></i> ${x[1]}</button>` : '').join('')}${t.ent.filter(e => e.bukti).slice(0, 1).map(e => `<button class="k-chip" data-act="akun-file" data-id="${E(e.bukti)}"><i class="bi bi-receipt"></i> Bukti bayar</button>`).join('')}</div><div class="ent-l">${t.ent.map(e => `<div class="ent-r"><span><b>#${e.no}</b> ${E(e.nama)} ${pill(e.v)}</span><span><button class="k-btn sm k-outline" data-act="ent-ubah" data-id="${E(e.id)}" data-a="${E(t.id)}"><i class="bi bi-arrow-left-right"></i> Ubah nomor</button> <button class="k-btn sm k-ghostw" data-act="ent-hapus" data-id="${E(e.id)}" title="Hapus nomor" style="color:var(--er)"><i class="bi bi-x-lg"></i></button></span></div><div id="eu-${E(e.id)}"></div>`).join('') || '<span class="mut sm">Belum ada nomor musim ini</span>'}</div></div></div>`).join('') || '<p class="mut">Belum ada atlet.</p>'}`;
+<h4 style="margin:6px 0 10px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">Atlet (${d.atlet.length})<button class="k-btn sm k-ghostw" data-go="a-nomor"><i class="bi bi-list-check"></i> Semua nomor peserta</button></h4>${d.atlet.map(t => `<div class="k-card"><div class="k-card-b"><div class="who"><div><b>${E(t.nama)}</b> <span class="mono mut">${E(t.bib)}</span> ${pill(t.st)}<br><small class="mut">NISN ${E(t.nisn)} · ${G_L[t.g]} · ${E(t.tmp)}, ${fdt(t.tgl)} · Kelas ${kls(t.kelas)} · ${E(jn(t.jk))}<br>${E(t.sk)}${t.kl ? ' / ' + E(t.kl) : ''} · ${E(t.wl)} · HP ${E(t.hp)}</small></div></div><div class="k-chips" style="margin:8px 0">${[['foto', 'Foto'], ['akta', 'Akte'], ['surat', 'Surat sekolah'], ['sosmed', 'Bukti follow']].map(x => t[x[0]] ? `<button class="k-chip" data-act="akun-file" data-id="${E(t[x[0]])}"><i class="bi bi-paperclip"></i> ${x[1]}</button>` : '').join('')}${t.ent.filter(e => e.bukti).slice(0, 1).map(e => `<button class="k-chip" data-act="akun-file" data-id="${E(e.bukti)}"><i class="bi bi-receipt"></i> Bukti bayar</button>`).join('')}</div><div class="ent-l">${t.ent.map(e => `<div class="ent-r"><span><b>#${e.no}</b> ${E(e.nama)} ${pill(e.v)}</span><span><button class="k-btn sm k-outline" data-act="ent-ubah" data-id="${E(e.id)}" data-a="${E(t.id)}"><i class="bi bi-arrow-left-right"></i> Ubah nomor</button> <button class="k-btn sm k-ghostw" data-act="ent-hapus" data-id="${E(e.id)}" title="Hapus nomor" style="color:var(--er)"><i class="bi bi-x-lg"></i></button></span></div><div id="eu-${E(e.id)}"></div>`).join('') || '<span class="mut sm">Belum ada nomor musim ini</span>'}</div><div class="k-bar" style="margin-top:8px"><button class="k-btn sm k-orange" data-act="np-tambah" data-a="${E(t.id)}"><i class="bi bi-plus-lg"></i> Tambah nomor</button></div><div class="np-fh" id="np-t-${E(t.id)}"></div></div></div>`).join('') || '<p class="mut">Belum ada atlet.</p>'}`;
     S.akDet = d;
   } catch (e) { const mb = $('#modal .k-mb'); if (mb) mb.innerHTML = alertx('err', E(e.message)); }
 };
@@ -223,11 +224,17 @@ V['a-jadwal'] = function () {
     main(`<div class="k-wrap pad">${ph('Jadwal Acara', 'Estimasi jam otomatis dari jumlah pendaftar × seri. Isi jam/hari/urutan manual bila perlu — nomor berikutnya mengikuti.', `<button class="k-btn k-ghostw" data-act="jd-reset">Reset semua manual</button>`)}${S.jdTabBar ? S.jdTabBar() : ''}
 ${isSA() ? card('Pengaturan perhitungan otomatis', `<form data-submit="jdcfg"><div class="g3">${field('Jam mulai tiap hari', inp('mulai', d.cfg.mulai, { type: 'time', req: 1 }), 1)}${field('Jeda antar nomor (menit)', inp('jeda', d.cfg.jeda, { type: 'number', attr: 'min="0" max="60"' }))}${field('Jumlah lintasan', inp('lin', d.cfg.lintasan, { ro: 1 }), 0, 'Ubah di Pengaturan Web')}</div><p class="mut sm" style="margin-bottom:6px">Durasi tiap seri (menit) per jarak, termasuk pengumuman & pergantian atlet:</p><div class="g3" style="grid-template-columns:repeat(auto-fit,minmax(110px,1fr))">${jarak.map(j => field(j + ' m', inp('m' + j, menit[j] || '', { type: 'number', attr: 'min="1" max="90" step="0.5"' }))).join('')}</div><div class="k-bar"><button class="k-btn k-navy">Simpan & hitung ulang</button></div></form>`) : ''}
 ${rows.some(r => r.n) ? '' : alertx('info', 'Belum ada pendaftar, jadi belum ada estimasi jam. Jadwal akan terisi seiring pendaftaran masuk.')}
-${Object.keys(byDay).sort((a, b) => a - b).map(h => card(`Hari ${h}`, `<div class="k-scroll"><table class="k-table"><thead><tr><th>No</th><th>Nomor</th><th>Peserta</th><th>Seri</th><th>Hari</th><th>Urut</th><th>Jam manual</th><th>Estimasi</th><th></th></tr></thead><tbody>${byDay[h].map(r => `<tr><td class="mono">#${r.no}</td><td><b>${E(r.nama)}</b><br><small class="mut">${E(jn(r.jk))} ${G_L[r.g]}</small></td><td>${r.n}</td><td>${r.heats} × ${r.mn}′</td><td><input class="k-in sm" style="width:64px" type="number" min="1" max="9" value="${r.hari}" data-chg="jd-f" data-f="hari" data-id="${E(r.eid)}"></td><td><input class="k-in sm" style="width:72px" type="number" value="${r.urut}" data-chg="jd-f" data-f="urut" data-id="${E(r.eid)}"></td><td><input class="k-in sm" style="width:110px" type="time" value="${E(r.jamManual)}" data-chg="jd-f" data-f="jam" data-id="${E(r.eid)}"></td><td class="mono">${r.n ? `<b>${E(r.mulai)}</b> – ${E(r.selesai)}` : '<span class="mut">—</span>'}${r.bentrok ? ' <span class="k-pill k-warn" title="Jam manual lebih awal dari selesainya nomor sebelumnya">bentrok</span>' : ''}</td><td>${r.manual ? `<button class="k-btn sm k-ghostw" data-act="jd-r" data-id="${E(r.eid)}">Auto</button>` : '<span class="k-pill k-neu">auto</span>'}</td></tr>`).join('')}</tbody></table></div>`, '', true)).join('')}</div>`);
+${Object.keys(byDay).sort((a, b) => a - b).map(h => card(`Hari ${h}`, `<div class="k-scroll"><table class="k-table"><thead><tr><th>No</th><th>Nomor</th><th>Peserta</th><th>Seri</th><th>Hari</th><th>Urut</th><th>Jam manual</th><th>Estimasi</th><th>Istirahat</th><th></th></tr></thead><tbody>${byDay[h].map(r => `<tr><td class="mono">#${r.no}</td><td><b>${E(r.nama)}</b><br><small class="mut">${E(jn(r.jk))} ${G_L[r.g]}</small></td><td>${r.n}</td><td>${r.heats} × ${r.mn}′</td><td><input class="k-in sm" style="width:64px" type="number" min="1" max="9" value="${r.hari}" data-chg="jd-f" data-f="hari" data-id="${E(r.eid)}"></td><td><input class="k-in sm" style="width:72px" type="number" value="${r.urut}" data-chg="jd-f" data-f="urut" data-id="${E(r.eid)}"></td><td><input class="k-in sm" style="width:110px" type="time" value="${E(r.jamManual)}" data-chg="jd-f" data-f="jam" data-id="${E(r.eid)}"></td><td class="mono">${r.n ? `<b>${E(r.mulai)}</b> – ${E(r.selesai)}` : '<span class="mut">—</span>'}${r.bentrok ? ' <span class="k-pill k-warn" title="Jam manual lebih awal dari selesainya nomor sebelumnya">bentrok</span>' : ''}</td><td>${r.istSet ? `<span class="k-pill ${r.istSet.aktif ? 'k-warn' : 'k-neu'}" ${r.istSet.aktif ? '' : 'title="Belum berlaku: belum ada nomor berpeserta sebelum nomor ini di hari yang sama"'}>${E(r.istSet.label)} ${r.istSet.menit}′</span> <button class="k-ibtn" data-act="jd-ist" data-id="${E(r.eid)}" aria-label="Ubah istirahat"><i class="bi bi-pencil"></i></button>` : `<button class="k-btn sm k-outline" data-act="jd-ist" data-id="${E(r.eid)}" title="Sisipkan jeda istirahat setelah nomor ini">+ Istirahat</button>`}</td><td>${r.manual ? `<button class="k-btn sm k-ghostw" data-act="jd-r" data-id="${E(r.eid)}">Auto</button>` : '<span class="k-pill k-neu">auto</span>'}</td></tr>${(r.ist || []).map(b => `<tr style="background:var(--gold,#FFF7DC)"><td colspan="10"><i class="bi bi-cup-hot"></i> <b>${E(b.label)}</b> — ${b.menit} menit · <span class="mono">${E(b.mulai)} – ${E(b.selesai)}</span></td></tr>`).join('')}`).join('')}</tbody></table></div>`, '', true)).join('')}</div>`);
   }, 2000);
 };
 INP['jd-f'] = async i => { const o = { eid: i.dataset.id }; o[i.dataset.f] = i.value; try { const r = await rp('jd.set', o); S.cache = {}; bustCache('jd'); toast('Jadwal diperbarui.'); await refreshAll(); go('a-jadwal'); } catch (e) { toast(e.message, 'err'); } };
 ACT['jd-r'] = async a => { try { await rp('jd.set', { eid: a.dataset.id, reset: true }); await refreshAll(); toast('Kembali ke otomatis.'); go('a-jadwal'); } catch (e) { toast(e.message, 'err'); } };
+ACT['jd-ist'] = a => {
+  const r = (S.jd.rows || []).filter(x => x.eid === a.dataset.id)[0]; if (!r) return; const b = r.istSet;
+  modal('Jeda istirahat setelah nomor #' + r.no, `<form data-submit="jdist" data-id="${E(r.eid)}"><p class="mut sm">Istirahat disisipkan <b>setelah</b> nomor ini selesai. Jam nomor berikutnya (di hari yang sama) otomatis bergeser. Tampil di Jadwal web dan Buku Acara.</p><div class="g2">${field('Lama istirahat (menit)', inp('menit', b ? b.menit : 30, { type: 'number', req: 1, attr: 'min="1" max="240"' }), 1)}${field('Keterangan', inp('label', b ? b.label : 'Istirahat', { attr: 'maxlength="40" placeholder="mis. Istirahat / Ishoma"' }))}</div><div class="k-bar">${b ? '<button type="button" class="k-btn k-ghostw" data-act="jd-ist-del" data-id="' + E(r.eid) + '">Hapus istirahat</button>' : ''}<button class="k-btn k-navy">Simpan</button></div></form>`);
+};
+ACT['jd-ist-del'] = async a => { try { await rp('jd.set', { eid: a.dataset.id, ist: null }); S.cache = {}; bustCache('jd'); closeModal(); await refreshAll(); toast('Istirahat dihapus.'); go('a-jadwal'); } catch (e) { toast(e.message, 'err'); } };
+SUBMIT.jdist = async f => { const b = $('button.k-navy', f), d = form(f); busy(b, true); try { await rp('jd.set', { eid: f.dataset.id, ist: { menit: d.menit, label: d.label } }); S.cache = {}; bustCache('jd'); closeModal(); await refreshAll(); toast('Istirahat tersimpan. Jam nomor berikutnya dihitung ulang.'); go('a-jadwal'); } catch (e) { toast(e.message, 'err'); busy(b, false); } };
 ACT['jd-reset'] = async () => { if (!(await ask('Hapus semua pengaturan manual (hari, urutan, jam)?', 'Reset', true))) return; try { await rp('jd.set', { resetAll: true }); await refreshAll(); toast('Semua jadwal kembali otomatis.'); go('a-jadwal'); } catch (e) { toast(e.message, 'err'); } };
 SUBMIT.jdcfg = async f => { const b = $('button.k-navy', f), d = form(f); busy(b, true); const m = {}; Object.keys(d).forEach(k => { if (/^m\d+$/.test(k) && Number(d[k]) > 0) m[k.slice(1)] = Number(d[k]); }); try { await rp('jd.set', { cfg: { mulai: d.mulai, jeda: d.jeda || '0', menit: JSON.stringify(m) } }); await refreshAll(); toast('Pengaturan jadwal tersimpan.'); go('a-jadwal'); } catch (e) { toast(e.message, 'err'); busy(b, false); } };
 })();
@@ -361,7 +368,7 @@ function langkah(P, jalur) {
   add('Persiapan', 'Nomor lomba & kelompok', P.nomor ? 'ok' : 'todo', `${P.nomor} nomor aktif`,
     ['Tab Nomor pertandingan: pakai Generator nomor (centang gaya × jarak per kelompok) atau tambah satu per satu.', 'Nomor yang Dibuka langsung tampil di akun peserta sesuai kelompok kelas & gender atlet; Tutup bila kuota penuh.', 'Atur kuota per nomor bila perlu; nomor dengan peserta di bawah minimal bisa Dibatalkan.'], [['a-event', 'Event & Nomor Lomba']]);
   add('Persiapan', 'Susunan acara & estimasi jam', P.nomor ? 'ok' : 'todo', `Mulai ${E(P.mulai)} · ${P.jadwalManual} nomor diatur manual`,
-    ['Atur jam mulai, menit per seri tiap jarak, dan jeda antarnomor.', 'Urutan, hari, dan jam bisa diubah manual per nomor; sisanya dihitung otomatis.', 'Estimasi ikut berubah mengikuti jumlah peserta dan seri setelah start list tersusun.'], [['a-jadwal', 'Jadwal Acara']], 'Estimasi jam tampil di web dan di Buku Acara.');
+    ['Atur jam mulai, menit per seri tiap jarak, dan jeda antarnomor.', 'Urutan, hari, dan jam bisa diubah manual per nomor; sisanya dihitung otomatis.', 'Estimasi ikut berubah mengikuti jumlah peserta dan seri setelah start list tersusun.', 'Untuk jeda istirahat/Ishoma: klik “+ Istirahat” pada nomor yang diikuti istirahat, isi lama (menit). Jam nomor berikutnya bergeser otomatis.'], [['a-jadwal', 'Jadwal Acara']], 'Estimasi jam tampil di web dan di Buku Acara.');
   if (jalur === 'online') {
     add('Pendaftaran', 'Buka pendaftaran online', en.total || f > 0 ? 'ok' : P.buka ? 'run' : 'todo', P.buka ? `Dibuka${P.dl ? ' hingga ' + E(P.dl) : ''} · ${en.total} entri masuk` : f > 0 ? 'Tahap pendaftaran sudah lewat' : 'Belum dibuka',
       ['Pendaftaran terbuka otomatis sesuai jendela waktu event; buka/tutup cepat lewat tombol status di Event & Nomor Lomba.', 'Bagikan tautan halaman Info Lomba ke sekolah/klub; mereka membuat akun sekali, lalu mendaftarkan atlet dan nomor.', 'Coba dulu alurnya dengan Akun demo (sekolah, klub, mandiri), lalu hapus akun demo.', 'Pantau Dashboard: nomor dengan peserta di bawah minimal ditandai dan bisa dihubungi.'], [['a-event', 'Event & Nomor Lomba'], ['a-dash', 'Dashboard']]);
@@ -832,7 +839,7 @@ ACT['kl-aksi'] = async a => { const ids = Object.keys(S.klSel); if (!ids.length)
 (function () {
 'use strict';
 /* ===== Susun Acara dinamis: seret & lepas, pindah hari, batalkan/pulihkan nomor, estimasi jam langsung ===== */
-const { $, $$, E, S, V, ACT, INP, G_L, FASE_L, rp, toast, busy, ph, alertx, go, ask, bustCache, jn } = KRP;
+const { $, $$, E, S, V, ACT, INP, SUBMIT, G_L, FASE_L, rp, toast, busy, ph, alertx, go, ask, bustCache, jn, card, xlsx, form, fdt } = KRP;
 const main = h => { $('#main').innerHTML = h; };
 const tabelLama = V['a-jadwal']; // tampilan tabel & jam manual (versi sebelumnya)
 const GU = { 'Gaya Bebas': 1, 'Gaya Punggung': 2, 'Gaya Dada': 3, 'Gaya Kupu-kupu': 4, 'Gaya Ganti Perorangan': 5 };
@@ -843,11 +850,15 @@ const jamM = t => { const q = String(t || '08:00').split(':'); return Number(q[0
 V['a-jadwal'] = function () {
   S.jdTab = S.jdTab || 'susun';
   if (S.jdTab === 'tabel') return tabelLama();
-  const t = S.rt;
-  rp('jd.get', {}).then(r => { if (t !== S.rt) return; muat(r.data); gambar(); }).catch(e => KRP.errView(e.message, () => go('a-jadwal')));
+  const tampil = () => (S.jdTab === 'sim' ? gambarSim() : gambar());
+  if (S.SA && S.SA.dirty) return tampil(); // susunan yang belum disimpan tetap dipakai (pindah tab Susun ↔ Simulasi tanpa kehilangan perubahan)
+  const t = S.rt, c = KRP.cacheSegar('jd', 120000); let js = '';
+  if (c) { js = JSON.stringify(c.d); muat(c.d); tampil(); } // salinan terakhir langsung tampil
+  rp('jd.get', {}).then(r => { if (t !== S.rt) return; KRP.simpanCache('jd', r.data); if (c && (JSON.stringify(r.data) === js || (S.SA && S.SA.dirty))) return; muat(r.data); tampil(); })
+    .catch(e => { if (!c) KRP.errView(e.message, () => go('a-jadwal')); else toast(e.message, 'err'); });
 };
-const tabJd = () => `<div class="k-seg ev-tabs">${[['susun', 'Susun acara', 'bi-arrows-move'], ['tabel', 'Tabel & jam manual', 'bi-table']].map(x => `<button class="${S.jdTab === x[0] ? 'on' : ''}" data-act="jd-tab" data-v="${x[0]}"><i class="bi ${x[2]}"></i> ${x[1]}</button>`).join('')}</div>`;
-ACT['jd-tab'] = a => { if (S.SA && S.SA.dirty && a.dataset.v !== 'susun') { toast('Simpan atau batalkan perubahan susunan dulu.', 'warn'); return; } S.jdTab = a.dataset.v; go('a-jadwal'); };
+const tabJd = () => `<div class="k-seg ev-tabs">${[['susun', 'Susun acara', 'bi-arrows-move'], ['sim', 'Simulasi program', 'bi-play-btn'], ['tabel', 'Tabel & jam manual', 'bi-table']].map(x => `<button class="${S.jdTab === x[0] ? 'on' : ''}" data-act="jd-tab" data-v="${x[0]}"><i class="bi ${x[2]}"></i> ${x[1]}</button>`).join('')}</div>`;
+ACT['jd-tab'] = a => { if (S.SA && S.SA.dirty && a.dataset.v === 'tabel') { toast('Simpan atau batalkan perubahan susunan dulu.', 'warn'); return; } S.jdTab = a.dataset.v; go('a-jadwal'); };
 // Sisipkan tab ke tampilan tabel lama
 S.jdTabBar = tabJd;
 
@@ -858,22 +869,29 @@ function muat(d) {
   let menit = {}; try { menit = JSON.parse(d.cfg.menit || '{}'); } catch (e) { }
   d.batal.forEach(r => { rows[r.eid].mn = Number(menit[r.d]) || Math.max(2, Math.round(r.d / 25) + 1); });
   if (!Object.keys(hari).length) hari[1] = [];
-  S.SA = { d, rows, hari, batal: d.batal.map(r => r.eid), dirty: false, renomor: !d.kunciNo, mulaiNo: 1, sel: null };
+  d.sah = d.sah || {}; d.fin = d.fin || {}; d.cfg.otomatis = d.cfg.otomatis || 'KOSONG'; S.jdOto = d.cfg.otomatis;
+  // Selama pendaftaran dibuka dengan nomor final otomatis, simpan urutan saja: nomor acara yang dilihat pendaftar tidak berubah;
+  // nomor acara final diberikan saat start list disusun. Setelah pendaftaran ditutup, menyimpan langsung menomori ulang seperti biasa.
+  // Setelah pendaftaran ditutup (fase apa pun sebelum Buku Acara), "Simpan susunan" langsung menerapkan nomor final:
+  // nomor kosong dilewati & acara dinomori #1… mengikuti papan. Susunan induk (semua nomor) disimpan server agar bisa disusun ulang dari awal.
+  const otoNanti = d.cfg.otomatis !== 'OFF' && d.buka, bisaFinal = !d.buka && d.cfg.otomatis !== 'OFF' && !d.kunciNo;
+  S.SA = { d, rows, hari, batal: d.batal.map(r => r.eid), dirty: false, renomor: !d.kunciNo && !otoNanti, final: bisaFinal, bisaFinal, induk: false, resetJam: false, mulaiNo: 1, sel: null };
 }
 function hitung() { // estimasi jam per hari, sama dengan perhitungan server
-  const A = S.SA, c = A.d.cfg, jeda = Number(c.jeda) || 0, out = {}; let no = A.mulaiNo;
+  const A = S.SA, c = A.d.cfg, jeda = Number(c.jeda) || 0, out = {}; let no = A.final ? 1 : A.mulaiNo, pos = 1;
   Object.keys(A.hari).sort((a, b) => a - b).forEach(h => {
     let cur = jamM(c.mulai); out[h] = { mulai: jamF(cur), selesai: '', n: A.hari[h].length };
-    A.hari[h].forEach(id => { const r = A.rows[id]; r._no = A.renomor ? no++ : r.no; if (!r.n) { r._jam = ''; return; } let st = cur; if (r.jamManual) st = Math.max(jamM(r.jamManual), 0); r._jam = jamF(st); cur = st + r.heats * r.mn + jeda; r._sel = jamF(cur - jeda); });
+    A.hari[h].forEach(id => { const r = A.rows[id]; r._pos = pos++; r._no = A.final ? (akanLewat(r) ? 0 : no++) : A.renomor ? no++ : r.no; if (!r.n) { r._jam = ''; return; } let st = cur; if (r.jamManual) st = Math.max(jamM(r.jamManual), 0); r._jam = jamF(st); cur = st + r.heats * r.mn + jeda; r._sel = jamF(cur - jeda); });
     out[h].selesai = A.hari[h].some(id => A.rows[id].n) ? jamF(cur - jeda) : '';
   });
-  A.batal.forEach(id => { A.rows[id]._no = A.renomor ? no++ : A.rows[id].no; });
+  A.batal.forEach(id => { A.rows[id]._no = A.renomor && !A.final ? no++ : A.rows[id].no; });
   return out;
 }
+const akanLewat = r => { const A = S.SA, d = A.d, n = d.fin[r.eid] != null ? d.fin[r.eid] : r.n; if (d.kunciNo || d.cfg.otomatis === 'OFF') return ''; return d.cfg.otomatis === 'KOSONG' ? (n === 0 ? 'kosong' : '') : (n < Math.max(1, d.minp || 1) ? 'kurang' : ''); };
 function kartu(id, i, n) {
-  const A = S.SA, r = A.rows[id], kurang = A.d.fase !== 'PENDAFTARAN' && A.d.minp && r.n < A.d.minp;
-  return `<li class="sa-it${kurang ? ' warn' : ''}${A.sel === id ? ' sel' : ''}" draggable="true" data-id="${E(id)}"><span class="sa-h" aria-hidden="true"><i class="bi bi-grip-vertical"></i></span><span class="sa-no mono">#${r._no}</span>
-<div class="sa-b"><b>${E(r.nama)}</b><small>${E(jn(r.jk))} · ${G_L[r.g] || r.g}</small></div>
+  const A = S.SA, r = A.rows[id], kurang = !A.d.buka && A.d.minp && r.n < A.d.minp, lw = akanLewat(r);
+  return `<li class="sa-it${kurang ? ' warn' : ''}${lw ? ' skip' : ''}${A.sel === id ? ' sel' : ''}" draggable="true" data-id="${E(id)}"><span class="sa-h" aria-hidden="true"><i class="bi bi-grip-vertical"></i></span><label class="sa-no" title="Urutan ke- (ketik angka lalu Enter untuk memindahkan)"><input class="k-in sa-pos mono" type="number" min="1" value="${r._pos}" data-chg="sa-pos" data-id="${E(id)}" aria-label="Urutan ke-">${A.final ? (r._no ? `<small class="mono sa-fin" title="Nomor acara final setelah disimpan">#${r._no}</small>` : '<small class="mut">lewat</small>') : A.renomor ? '' : `<small class="mut mono">#${r.no}</small>`}</label>
+<div class="sa-b"><b>${E(r.nama)}</b><small>${E(jn(r.jk))} · ${G_L[r.g] || r.g}${lw ? ` · <span class="sa-skip">${lw === 'kosong' ? 'kosong · akan dilewati' : 'peserta &lt; ' + (A.d.minp || 1) + ' · akan dilewati'}</span>` : ''}</small></div>
 <div class="sa-m"><span class="sa-pes${kurang ? ' warn' : ''}" title="Peserta${kurang ? ' (kurang dari minimal ' + A.d.minp + ')' : ''}"><i class="bi bi-people"></i> ${r.n}</span><span class="mono sa-jam">${r._jam || '—'}</span></div>
 <div class="sa-a"><button type="button" class="ev-ib" data-act="sa-up" data-id="${E(id)}" ${i === 0 ? 'disabled' : ''} title="Naik" aria-label="Naik"><i class="bi bi-arrow-up"></i></button><button type="button" class="ev-ib" data-act="sa-down" data-id="${E(id)}" ${i === n - 1 ? 'disabled' : ''} title="Turun" aria-label="Turun"><i class="bi bi-arrow-down"></i></button><select class="k-in sa-hr" data-chg="sa-hari" data-id="${E(id)}" aria-label="Pindah hari">${Object.keys(A.hari).concat([String(Object.keys(A.hari).length + 1)]).filter((v, j, a) => a.indexOf(v) === j).map(h => `<option value="${h}"${String(r.hari) === String(h) ? ' selected' : ''}>H${h}</option>`).join('')}</select><button type="button" class="ev-ib del" data-act="sa-batal" data-id="${E(id)}" title="Batalkan nomor (tidak dilaksanakan)" aria-label="Batalkan"><i class="bi bi-x-circle"></i></button></div></li>`;
 }
@@ -881,12 +899,14 @@ function gambar() {
   const A = S.SA, d = A.d, est = hitung(), hs = Object.keys(A.hari).sort((a, b) => a - b), aktif = hs.reduce((s, h) => s + A.hari[h].length, 0);
   const kurang = hs.reduce((s, h) => s + A.hari[h].filter(id => d.minp && A.rows[id].n < d.minp).length, 0);
   main(`<div class="k-wrap pad">${ph('Jadwal & Susun Acara', 'Seret nomor untuk mengubah urutan atau memindahkan hari. Batalkan nomor yang tidak bisa dilaksanakan; estimasi jam langsung dihitung ulang.')}${tabJd()}
-${d.kunciNo ? alertx('warn', `Buku Acara sudah terbit (tahap ${E(FASE_L[d.fase] || d.fase)}). Urutan & hari masih bisa diubah, tetapi <b>nomor acara tidak diurutkan ulang</b> agar sama dengan dokumen. Terbitkan ulang Buku Acara setelah menyimpan.`, 'bi-lock') : ''}
+${A.bisaFinal ? alertx(A.induk ? 'warn' : 'info', `<b>Pendaftaran sudah ditutup.</b> Susun urutan seluruh nomor dari awal sampai akhir seperti biasa. Saat <b>Simpan susunan</b>, nomor ${d.cfg.otomatis === 'KOSONG' ? 'tanpa peserta' : 'dengan peserta kurang dari ' + (d.minp || 1)} otomatis dilewati dan acara dinomori #1, #2, … mengikuti papan (angka oranye di kartu). Ingin mulai dari nol? Klik <b>Susun ulang dari awal</b>.${d.induk ? ` <span class="sm">Susunan sebelum nomor final tersimpan (${E(fdt(d.induk.t))}).</span>` : ''}`, 'bi-signpost-split') : ''}
+${!d.kunciNo && d.cfg.otomatis !== 'OFF' && d.buka ? alertx('info', `<b>Susunan induk.</b> Atur urutan seluruh nomor dari awal sampai akhir kapan saja, walau pendaftaran masih dibuka. Ketik angka di kotak urutan untuk memindahkan nomor. Saat pendaftaran ditutup dan start list disusun, nomor ${d.cfg.otomatis === 'KOSONG' ? 'tanpa peserta' : 'dengan peserta kurang dari ' + (d.minp || 1)} dilewati dan acara otomatis dinomori #1, #2, … mengikuti susunan ini. Lihat hasilnya di tab <b>Simulasi program</b>.`, 'bi-signpost-split') : ''}
+${d.kunciNo ? alertx('warn', `Buku Acara sudah terbit (tahap ${E(FASE_L[d.fase] || d.fase)}). Urutan & hari masih bisa diubah, tetapi <b>nomor acara tidak diurutkan ulang</b> agar sama dengan dokumen. Terbitkan ulang Buku Acara setelah menyimpan.${d.bukaKunci ? ' Perlu menyusun ulang nomor acara dari awal? <button class="k-btn sm k-navy" data-act="sa-bukakunci"><i class="bi bi-unlock"></i> Buka kunci nomor acara</button>' : ''}`, 'bi-lock') : ''}
 <div class="sa-top"><div class="sa-kpi"><span><b>${aktif}</b> dipertandingkan</span><span><b>${A.batal.length}</b> dibatalkan</span><span class="${kurang ? 'warn' : ''}"><b>${kurang}</b> peserta &lt; ${d.minp || '-'}</span>${hs.map(h => `<span>Hari ${h}: <b>${est[h].mulai}–${est[h].selesai || '?'}</b></span>`).join('')}</div>
-<div class="sa-tool"><button class="k-btn k-outline sm" data-act="sa-kurang" ${kurang && d.fase !== 'PENDAFTARAN' ? '' : 'disabled'} title="${d.fase === 'PENDAFTARAN' ? 'Aktif setelah pendaftaran ditutup' : ''}"><i class="bi bi-x-octagon"></i> Batalkan semua &lt; ${d.minp || '-'} peserta</button><select class="k-in sa-sort" data-chg="sa-sort" aria-label="Urutkan otomatis"><option value="">Urutkan otomatis tiap hari…</option><option value="no">Nomor acara lama</option><option value="gaya">Per gaya & jarak, lalu kelompok</option><option value="kel">Per kelompok, lalu gaya & jarak</option><option value="jarak">Jarak pendek dulu</option></select><button class="k-btn k-outline sm" data-act="sa-hari-baru"><i class="bi bi-plus-lg"></i> Tambah hari</button></div></div>
+<div class="sa-tool"><button class="k-btn k-navy sm" data-act="sa-ulang" title="Mulai susunan dari nol: kembalikan susunan sebelum nomor final atau susun otomatis dengan pola"><i class="bi bi-arrow-repeat"></i> Susun ulang dari awal</button><button class="k-btn k-outline sm" data-act="sa-kurang" ${kurang && !d.buka ? '' : 'disabled'} title="${d.buka ? 'Aktif setelah pendaftaran ditutup' : ''}"><i class="bi bi-x-octagon"></i> Batalkan semua &lt; ${d.minp || '-'} peserta</button><select class="k-in sa-sort" data-chg="sa-sort" aria-label="Urutkan otomatis"><option value="">Urutkan otomatis tiap hari…</option><option value="no">Nomor acara lama</option><option value="gaya">Per gaya & jarak, lalu kelompok</option><option value="kel">Per kelompok, lalu gaya & jarak</option><option value="jarak">Jarak pendek dulu</option></select><button class="k-btn k-outline sm" data-act="sa-bagi" title="Bagi urutan menjadi beberapa hari dengan durasi seimbang"><i class="bi bi-distribute-vertical"></i> Bagi hari seimbang</button><button class="k-btn k-outline sm" data-act="sa-hari-baru"><i class="bi bi-plus-lg"></i> Tambah hari</button></div></div>
 <div class="sa-board" id="sa-board">${hs.map(h => `<section class="sa-day" data-hari="${h}"><header><div><b>Hari ${h}</b><small class="mut">${A.hari[h].length} nomor · mulai ${est[h].mulai}${est[h].selesai ? ' · selesai ±' + est[h].selesai : ''}</small></div></header><ol class="sa-list" data-hari="${h}">${A.hari[h].map((id, i) => kartu(id, i, A.hari[h].length)).join('') || '<li class="sa-empty">Seret nomor ke sini</li>'}</ol></section>`).join('')}</div>
 <section class="sa-tray"><header><b><i class="bi bi-slash-circle"></i> Dibatalkan / tidak dilaksanakan (${A.batal.length})</b><small class="mut">Tidak tampil di jadwal, start list, dan Buku Acara. Pendaftarnya perlu dipindah lewat Akun & Berkas.</small></header><div class="sa-tl">${A.batal.map(id => { const r = A.rows[id]; return `<span class="sa-bt"><span class="mono">#${r._no}</span> ${E(r.nama)} · ${E(jn(r.jk))} · ${G_L[r.g] || ''} <small>(${r.n} peserta)</small><button type="button" class="k-btn sm k-outline" data-act="sa-pulih" data-id="${E(id)}">Pulihkan</button></span>`; }).join('') || '<span class="mut sm">Belum ada nomor yang dibatalkan.</span>'}</div></section>
-<div class="k-bar sticky sa-save"><label class="k-check1"><input type="checkbox" data-chg="sa-renomor" ${A.renomor ? 'checked' : ''} ${d.kunciNo ? 'disabled' : ''}> Urutkan ulang nomor acara mulai #<input class="k-in sa-mno" type="number" min="1" value="${A.mulaiNo}" data-chg="sa-mno" ${d.kunciNo ? 'disabled' : ''} aria-label="Nomor awal"> sesuai susunan</label><span class="sa-dirty">${A.dirty ? '<i class="bi bi-circle-fill"></i> Ada perubahan belum disimpan' : ''}</span><button class="k-btn k-ghostw" data-act="sa-reset" ${A.dirty ? '' : 'disabled'}>Batalkan perubahan</button><button class="k-btn lg k-orange" data-act="sa-simpan" ${A.dirty || A.renomor ? '' : 'disabled'}><i class="bi bi-check2-circle"></i> Simpan susunan</button></div></div>`);
+<div class="k-bar sticky sa-save">${A.bisaFinal ? `<label class="k-check1"><input type="checkbox" data-chg="sa-final" ${A.final ? 'checked' : ''}> Terapkan nomor final saat menyimpan <small class="mut">(${E(ATURAN_P[d.cfg.otomatis] || '')}, acara #1…)</small></label>` : ''}${A.final ? '' : `<label class="k-check1"><input type="checkbox" data-chg="sa-renomor" ${A.renomor ? 'checked' : ''} ${d.kunciNo ? 'disabled' : ''}> Urutkan ulang nomor acara mulai #<input class="k-in sa-mno" type="number" min="1" value="${A.mulaiNo}" data-chg="sa-mno" ${d.kunciNo ? 'disabled' : ''} aria-label="Nomor awal"> sesuai susunan</label>`}<span class="sa-dirty">${A.dirty ? `<i class="bi bi-circle-fill"></i> ${A.induk ? 'Susunan baru dari awal belum disimpan' : 'Ada perubahan belum disimpan'}` : ''}</span><button class="k-btn k-ghostw" data-act="sa-reset" ${A.dirty ? '' : 'disabled'}>Batalkan perubahan</button><button class="k-btn lg k-orange" data-act="sa-simpan" ${A.dirty || A.renomor || A.final ? '' : 'disabled'}><i class="bi bi-check2-circle"></i> ${A.final ? 'Simpan & terapkan nomor final' : 'Simpan susunan'}</button></div></div>`);
   pasangDnD();
 }
 const ubah = () => { S.SA.dirty = true; gambar(); };
@@ -908,19 +928,168 @@ ACT['sa-kurang'] = async () => {
   if (!(await ask(`Batalkan <b>${L.length} nomor</b> dengan peserta kurang dari ${A.d.minp}?${ada ? ` ${ada} di antaranya punya pendaftar yang nanti perlu dipindahkan.` : ''} Belum tersimpan sampai Anda klik Simpan susunan.`, 'Batalkan nomor', true))) return;
   L.forEach(id => { const p = cari(id); A.hari[p[0]].splice(p[1], 1); A.batal.push(id); }); ubah();
 };
+const POLA = { gaya: 'Per gaya & jarak, lalu kelompok', kel: 'Per kelompok, lalu gaya & jarak', jarak: 'Jarak pendek dulu', no: 'Nomor acara saat ini' };
+function pembanding(k) {
+  const jen = {}; (S.B.jenjang || []).forEach((j, n) => { jen[j.kode] = n; });
+  return { no: (a, b) => a.no - b.no, gaya: (a, b) => (GU[gaya(a.nama)] || 9) - (GU[gaya(b.nama)] || 9) || a.d - b.d || (jen[a.jk] || 0) - (jen[b.jk] || 0) || a.g.localeCompare(b.g), kel: (a, b) => (jen[a.jk] || 0) - (jen[b.jk] || 0) || (GU[gaya(a.nama)] || 9) - (GU[gaya(b.nama)] || 9) || a.d - b.d || a.g.localeCompare(b.g), jarak: (a, b) => a.d - b.d || (GU[gaya(a.nama)] || 9) - (GU[gaya(b.nama)] || 9) || (jen[a.jk] || 0) - (jen[b.jk] || 0) || a.g.localeCompare(b.g) }[k];
+}
 INP['sa-sort'] = i => {
-  const A = S.SA, k = i.value; if (!k) return; const jen = {}; (S.B.jenjang || []).forEach((j, n) => { jen[j.kode] = n; });
-  const f = { no: (a, b) => a.no - b.no, gaya: (a, b) => (GU[gaya(a.nama)] || 9) - (GU[gaya(b.nama)] || 9) || a.d - b.d || (jen[a.jk] || 0) - (jen[b.jk] || 0) || a.g.localeCompare(b.g), kel: (a, b) => (jen[a.jk] || 0) - (jen[b.jk] || 0) || (GU[gaya(a.nama)] || 9) - (GU[gaya(b.nama)] || 9) || a.d - b.d || a.g.localeCompare(b.g), jarak: (a, b) => a.d - b.d || (GU[gaya(a.nama)] || 9) - (GU[gaya(b.nama)] || 9) || (jen[a.jk] || 0) - (jen[b.jk] || 0) || a.g.localeCompare(b.g) }[k];
+  const A = S.SA, k = i.value; if (!k) return; const f = pembanding(k);
   Object.keys(A.hari).forEach(h => A.hari[h].sort((x, y) => f(A.rows[x], A.rows[y]))); toast('Urutan tiap hari diatur ulang. Putra selalu sebelum putri.'); ubah();
 };
+INP['sa-pos'] = i => { // pindahkan ke urutan global ke-n (lintas hari)
+  const A = S.SA, id = i.dataset.id, hs = Object.keys(A.hari).sort((a, b) => a - b), tot = hs.reduce((s, h) => s + A.hari[h].length, 0);
+  let k = Math.min(tot, Math.max(1, Number(i.value) || 1)) - 1; const p = cari(id); if (!p) return; A.hari[p[0]].splice(p[1], 1);
+  let ok = false; for (const h of hs) { const L = A.hari[h]; if (k < L.length) { L.splice(k, 0, id); A.rows[id].hari = Number(h); ok = true; break; } k -= L.length; }
+  if (!ok) { const h = hs[hs.length - 1]; A.hari[h].push(id); A.rows[id].hari = Number(h); }
+  S.SA.sel = id; ubah(); const el = $(`.sa-it[data-id="${CSS.escape(id)}"]`); if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+};
+function durasi(id) { // nomor kosong dihitung 1 seri (pendaftaran masih bisa masuk); nomor yang akan dilewati tidak memakan waktu
+  const A = S.SA, r = A.rows[id], lanes = Number(A.d.cfg.lintasan) || 8, jeda = Number(A.d.cfg.jeda) || 0;
+  if (A.final && akanLewat(r)) return 0; return Math.max(1, Math.ceil((r.n || 0) / lanes)) * r.mn + jeda + (r.istSet ? Number(r.istSet.menit) || 0 : 0);
+}
+function bagiSeimbang(G, H) { // urutan G tetap; dipotong menjadi H hari dengan durasi seimbang
+  const A = S.SA, T = G.reduce((s, id) => s + durasi(id), 0); A.hari = {}; for (let h = 1; h <= H; h++) A.hari[h] = [];
+  let cum = 0, di = 1; G.forEach(id => { const x = durasi(id); if (di < H && cum + x / 2 > T * di / H && A.hari[di].length) di++; A.hari[di].push(id); A.rows[id].hari = di; cum += x; });
+  Object.keys(A.hari).forEach(h => { if (!A.hari[h].length && Object.keys(A.hari).length > 1) delete A.hari[h]; });
+  return T;
+}
+ACT['sa-bagi'] = async () => { // urutan global tetap; batas antarhari digeser agar durasi tiap hari seimbang
+  const A = S.SA, hs = Object.keys(A.hari).sort((a, b) => a - b), H = hs.length; if (H < 2) return toast('Tambah hari dulu (minimal 2 hari) untuk membagi acara.', 'warn');
+  const G = [].concat(...hs.map(h => A.hari[h])), T = G.reduce((s, id) => s + durasi(id), 0);
+  if (!(await ask(`Bagi ${G.length} nomor ke ${H} hari dengan durasi ±${Math.round(T / H)} menit per hari? Urutan nomor tidak berubah.`, 'Bagi'))) return;
+  bagiSeimbang(G, H); ubah(); toast('Acara dibagi ke ' + H + ' hari. Periksa jam selesai tiap hari di atas.');
+};
+/* ===== Susun ulang dari awal (kapan saja, juga setelah pendaftaran ditutup) ===== */
+ACT['sa-ulang'] = () => {
+  const A = S.SA, d = A.d, ind = d.induk && (d.induk.rows || []).length ? d.induk : null, H = Math.max(1, Object.keys(A.hari).length), nB = A.batal.length;
+  KRP.modal('Susun ulang dari awal', `<form data-submit="sa-ulang" class="sa-ul">
+${ind ? `<label class="sa-op"><input type="radio" name="cara" value="induk" checked data-chg="sa-ulc"><span><b>Kembalikan susunan sebelum nomor final</b><small>Disimpan ${E(fdt(ind.t))}${ind.oleh ? ' oleh ' + E(ind.oleh) : ''}. Semua ${ind.rows.length} nomor kembali ke hari & urutan semula, termasuk nomor kosong yang dilewati.</small></span></label>` : ''}
+<label class="sa-op"><input type="radio" name="cara" value="pola" ${ind ? '' : 'checked'} data-chg="sa-ulc"><span><b>Susun otomatis dengan pola</b><small>Semua nomor diurutkan dari acara pertama sampai terakhir dengan pola di bawah, lalu dibagi ke beberapa hari dengan durasi seimbang.</small></span></label>
+<div class="sa-pola" ${ind ? 'hidden' : ''}><label class="k-f"><span>Pola urutan</span><select class="k-in" name="pola">${Object.keys(POLA).map(k => `<option value="${k}">${POLA[k]}</option>`).join('')}</select><small>Putra selalu sebelum putri pada jarak & gaya yang sama.</small></label>
+<label class="k-f"><span>Jumlah hari</span><input class="k-in" type="number" name="hari" min="1" max="9" value="${H}"></label>
+${nB ? `<label class="k-check1 sm"><input type="checkbox" name="pulih" checked> Ikutkan ${nB} nomor yang sedang dibatalkan/dilewati</label>` : ''}</div>
+<label class="k-check1 sm"><input type="checkbox" name="resetJam" checked> Hapus jam mulai manual (jam dihitung otomatis dari urutan)</label>
+${alertx('info', `Hasilnya tampil di papan dan <b>belum tersimpan</b>. Periksa, ubah bila perlu, lalu klik <b>${A.bisaFinal ? 'Simpan & terapkan nomor final' : 'Simpan susunan'}</b>.${A.bisaFinal ? ' Nomor yang tetap kosong otomatis dilewati saat disimpan.' : ''} Jeda istirahat tetap menempel pada nomornya.`, 'bi-info-circle')}
+<div class="k-bar"><button type="button" class="k-btn k-ghostw" data-act="mx">Batal</button><button class="k-btn k-orange"><i class="bi bi-arrow-repeat"></i> Susun di papan</button></div></form>`);
+};
+INP['sa-ulc'] = i => { const p = $('.sa-pola'); if (p) p.hidden = i.value !== 'pola'; };
+SUBMIT['sa-ulang'] = f => {
+  const A = S.SA, d = A.d, o = form(f);
+  if (o.cara === 'induk') {
+    const ada = {}, hari = {}, batal = [];
+    d.induk.rows.forEach(x => { const r = A.rows[x.e]; if (!r || ada[x.e]) return; ada[x.e] = 1; if (x.a) { const h = Math.max(1, Number(x.h) || 1); (hari[h] = hari[h] || []).push(x.e); } else batal.push(x.e); });
+    const hs = Object.keys(hari).sort((a, b) => a - b); A.hari = {}; hs.forEach((h, i) => { A.hari[i + 1] = hari[h]; hari[h].forEach(id => { A.rows[id].hari = i + 1; }); }); if (!hs.length) A.hari[1] = [];
+    Object.keys(A.rows).forEach(id => { if (ada[id]) return; const r = A.rows[id]; if (r.aktif) { const h = Math.max(...Object.keys(A.hari).map(Number)); A.hari[h].push(id); r.hari = h; } else batal.push(id); }); // nomor baru setelah susunan disimpan
+    A.batal = batal; toast('Susunan sebelum nomor final dikembalikan ke papan. Belum tersimpan.', 'warn');
+  } else {
+    const H = Math.min(9, Math.max(1, Number(o.hari) || 1)), cmp = pembanding(o.pola || 'gaya');
+    let G = [].concat(...Object.keys(A.hari).sort((a, b) => a - b).map(h => A.hari[h])); if (o.pulih) { G = G.concat(A.batal); A.batal = []; }
+    G.sort((x, y) => cmp(A.rows[x], A.rows[y])); bagiSeimbang(G, H);
+    toast(`${G.length} nomor disusun ulang (${POLA[o.pola] || ''}) ke ${Object.keys(A.hari).length} hari. Belum tersimpan.`, 'warn');
+  }
+  A.induk = true; A.resetJam = !!o.resetJam; if (A.resetJam) Object.keys(A.rows).forEach(id => { A.rows[id].jamManual = ''; });
+  if (A.bisaFinal) A.final = true; else if (!d.kunciNo) A.renomor = !(d.cfg.otomatis !== 'OFF' && d.buka);
+  KRP.closeModal(); ubah(); const b = $('#sa-board'); if (b) b.scrollIntoView({ block: 'start', behavior: 'smooth' });
+};
+ACT['sa-bukakunci'] = () => KRP.modal('Buka kunci nomor acara', `<form data-submit="sa-bukakunci"><p class="sm">Tahap event kembali ke <b>Start List</b> sehingga nomor acara bisa disusun ulang dan dinomori ulang. Belum ada hasil lomba, jadi tidak ada data yang hilang.</p>${alertx('warn', 'Setelah selesai menyusun, <b>terbitkan ulang Buku Acara</b> di menu Tahapan Event. Buku Acara lama tetap tampil di portal sampai yang baru terbit.', 'bi-exclamation-triangle')}${KRP.field('Ketik BUKA untuk konfirmasi', KRP.inp('konfirmasi', '', { req: 1, attr: 'autocomplete="off"' }), 1)}<div class="k-bar"><button type="button" class="k-btn k-ghostw" data-act="mx">Batal</button><button class="k-btn k-orange">Buka kunci</button></div></form>`);
+SUBMIT['sa-bukakunci'] = async f => { const b = $('button.k-orange', f); busy(b, true); try { const r = await rp('jd.buka', form(f)); KRP.closeModal(); toast(r.message, 'warn'); bustCache('jd'); bustCache('afase'); await S.refreshAll(); go('a-jadwal'); } catch (e) { toast(e.message, 'err'); busy(b, false); } };
+INP['sa-final'] = i => { S.SA.final = i.checked; if (!i.checked) S.SA.renomor = !S.SA.d.kunciNo; gambar(); };
 INP['sa-renomor'] = i => { S.SA.renomor = i.checked; gambar(); };
 INP['sa-mno'] = i => { S.SA.mulaiNo = Math.max(1, Number(i.value) || 1); gambar(); };
 ACT['sa-reset'] = () => { S.SA.dirty = false; go('a-jadwal'); };
 ACT['sa-simpan'] = async a => {
   const A = S.SA, urutan = []; Object.keys(A.hari).sort((x, y) => x - y).forEach(h => A.hari[h].forEach(id => urutan.push({ eid: id, hari: Number(h) })));
+  if (A.final) {
+    const tampil = urutan.filter(u => !akanLewat(A.rows[u.eid])), lewat = urutan.length - tampil.length, ent = urutan.filter(u => akanLewat(A.rows[u.eid])).reduce((s, u) => s + (A.d.fin[u.eid] != null ? A.d.fin[u.eid] : A.rows[u.eid].n), 0);
+    if (!tampil.length) return toast('Semua nomor akan dilewati. Periksa susunan atau aturan nomor final.', 'err');
+    if (!(await ask(`Simpan susunan dan terapkan nomor acara final <b>#1–#${tampil.length}</b>${lewat ? `; <b>${lewat} nomor</b> ${A.d.cfg.otomatis === 'KOSONG' ? 'tanpa peserta' : 'dengan peserta kurang dari minimal'} dilewati` : ''}?${ent ? ` ${ent} entri ada di nomor yang dilewati.` : ''} Nomor acara di jadwal web, start list, dan Buku Acara ikut berubah.`, 'Simpan & terapkan'))) return;
+  }
   busy(a, true);
-  try { const r = await rp('jd.susun', { urutan, batal: A.batal, renomor: A.renomor && !A.d.kunciNo, mulai: A.mulaiNo }); toast(r.message, r.data.pesertaBatal ? 'warn' : 'ok'); A.dirty = false; bustCache('evg'); bustCache('evl'); bustCache('jd'); await S.refreshAll(); go('a-jadwal'); }
+  try { const r = await rp('jd.susun', { urutan, batal: A.batal, renomor: !A.final && A.renomor && !A.d.kunciNo, mulai: A.mulaiNo, final: A.final, induk: A.induk, resetJam: A.resetJam }); toast(r.message, r.data.pesertaBatal || r.data.entriTerdampak ? 'warn' : 'ok'); A.dirty = false; bustCache('evg'); bustCache('evl'); bustCache('jd'); await S.refreshAll(); go('a-jadwal'); }
   catch (e) { toast(e.message, 'err'); busy(a, false); }
+};
+/* ===== Simulasi program: susunan induk + pendaftar → acara final, jam tiap hari, nomor yang dilewati =====
+   Dihitung di browser (tanpa memanggil server) dari susunan yang sedang tampil, termasuk perubahan yang belum disimpan. */
+const ATURAN_L = { KOSONG: 'Lewati nomor tanpa peserta', MINIMAL: 'Lewati nomor dengan peserta kurang dari minimal', OFF: 'Tidak ada yang dilewati (nomor kosong tetap memakai nomor)' };
+const ATURAN_P = { KOSONG: 'Lewati nomor kosong', MINIMAL: 'Lewati peserta < minimal', OFF: 'Tidak ada yang dilewati' };
+function simAwal() { const c = S.SA.d.cfg; if (!S.SIM || S.SIM._v !== S.SA.d) S.SIM = { _v: S.SA.d, dasar: 'semua', skenario: 'kini', faktor: 1.5, aturan: c.otomatis || 'KOSONG', mulai: c.mulai || '08:00', jeda: Number(c.jeda) || 0, batas: c.batas || '' }; return S.SIM; }
+function simHitung(o) {
+  const A = S.SA, d = A.d, lanes = Number(d.cfg.lintasan) || 8, minp = Math.max(1, Number(d.minp) || 1), jeda = Number(o.jeda) || 0, hs = Object.keys(A.hari).sort((a, b) => a - b);
+  const out = { hari: [], lewat: [], acara: 0, entriLewat: 0, peserta: 0 }; let no = 1;
+  hs.forEach(h => {
+    let cur = jamM(o.mulai), last = null; const L = [];
+    A.hari[h].forEach(id => {
+      const r = A.rows[id], n0 = o.dasar === 'sah' ? (d.sah[id] || 0) : (d.fin[id] != null ? d.fin[id] : r.n), n = o.skenario === 'faktor' ? Math.round(n0 * (Number(o.faktor) || 1)) : n0;
+      const lewat = o.aturan === 'KOSONG' ? n === 0 : o.aturan === 'MINIMAL' ? n < minp : false;
+      if (lewat) { out.lewat.push({ r, n, alasan: n === 0 ? 'tanpa peserta' : 'peserta ' + n + ' < ' + minp }); out.entriLewat += n; }
+      else if (!n) L.push({ r, no: no++, n: 0, kosong: true });
+      else {
+        const heats = n === r.n && o.dasar !== 'sah' && o.skenario !== 'faktor' && r.heats ? r.heats : Math.ceil(n / lanes);
+        let st = cur, bentrok = false; if (r.jamManual) { const m = jamM(r.jamManual); bentrok = m < cur; st = m; }
+        const it = { r, no: no++, n, heats, mulai: jamF(st), selesai: jamF(st + heats * r.mn), bentrok }; L.push(it); cur = st + heats * r.mn + jeda; last = it; out.peserta += n;
+      }
+      const b = r.istSet; if (b && Number(b.menit) > 0 && last) { (last.ist = last.ist || []).push({ label: b.label, menit: Number(b.menit), mulai: jamF(cur), selesai: jamF(cur + Number(b.menit)) }); cur += Number(b.menit); }
+    });
+    const akhir = last ? jamM(last.selesai) : null;
+    out.hari.push({ h, L, mulai: o.mulai, selesai: akhir == null ? '' : jamF(akhir), lebih: o.batas && akhir != null && akhir > jamM(o.batas) ? akhir - jamM(o.batas) : 0 });
+  });
+  out.acara = no - 1; return out;
+}
+const bisaTerapkanF = d => !d.kunciNo && !d.buka && ['PENDAFTARAN', 'VERIFIKASI', 'STARTLIST'].indexOf(d.fase) >= 0;
+const durTeks = m => (m >= 60 ? Math.floor(m / 60) + ' jam ' : '') + (m % 60 ? (m % 60) + ' menit' : '');
+function gambarSim() {
+  const A = S.SA, d = A.d, o = simAwal(), bisaTerapkan = bisaTerapkanF(d);
+  const info = d.kunciNo ? alertx('warn', 'Buku Acara sudah terbit: nomor acara final tidak diubah lagi. Simulasi tetap bisa dipakai untuk memperkirakan jam.', 'bi-lock')
+    : d.buka ? alertx('info', `Pendaftaran masih dibuka, jadi ini <b>perkiraan</b>. Jumlah peserta bisa bertambah sampai pendaftaran ditutup. Nomor final diterapkan ${d.cfg.otomatis === 'OFF' ? 'manual (aturan otomatis dimatikan)' : 'otomatis saat Anda menyusun start list di Tahapan Event, memakai aturan yang disimpan di sini'}.`, 'bi-hourglass-split')
+    : alertx('ok', 'Pendaftaran sudah ditutup. Bila simulasi sudah sesuai, terapkan nomor final sekarang atau biarkan diterapkan saat start list disusun.', 'bi-check2-circle');
+  const opt = (v, l, cur) => `<option value="${v}"${String(cur) === String(v) ? ' selected' : ''}>${l}</option>`;
+  main(`<div class="k-wrap pad">${ph('Jadwal & Susun Acara', 'Lihat program final sebelum terjadi: nomor acara, jam tiap hari, dan nomor yang dilewati. Ubah skenario untuk memperkirakan.')}${tabJd()}${info}
+${A.dirty ? alertx('warn', 'Simulasi memakai susunan yang <b>belum disimpan</b> dari tab Susun acara. Simpan susunan sebelum menerapkan.', 'bi-pencil') : ''}
+<form class="k-card sim-f" onsubmit="return false"><div class="k-card-b"><div class="sim-g">
+<label class="k-f"><span>Dasar jumlah peserta</span><select class="k-in" data-chg="sim" name="dasar">${opt('semua', 'Semua pendaftar', o.dasar)}${opt('sah', 'Sah & lunas saja', o.dasar)}</select><small>Semua = belum ditolak, termasuk yang menunggu verifikasi. Dasar ini yang dipakai saat nomor final diterapkan.</small></label>
+<label class="k-f"><span>Skenario</span><select class="k-in" data-chg="sim" name="skenario">${opt('kini', 'Pendaftar saat ini', o.skenario)}${opt('faktor', 'Perkiraan (× faktor)', o.skenario)}</select></label>
+<label class="k-f"><span>Faktor perkiraan</span><input class="k-in" type="number" step="0.1" min="0.5" max="5" name="faktor" value="${E(o.faktor)}" data-chg="sim" ${o.skenario === 'faktor' ? '' : 'disabled'}><small>Mis. 1,5 bila pendaftar diperkirakan naik 50% sampai ditutup.</small></label>
+<label class="k-f"><span>Aturan nomor final</span><select class="k-in" data-chg="sim" name="aturan">${Object.keys(ATURAN_P).map(k => opt(k, ATURAN_P[k] + (k === 'MINIMAL' ? ' (' + (d.minp || 1) + ')' : ''), o.aturan)).join('')}</select></label>
+<label class="k-f"><span>Jam mulai tiap hari</span><input class="k-in" type="time" name="mulai" value="${E(o.mulai)}" data-chg="sim"></label>
+<label class="k-f"><span>Jeda antarnomor (menit)</span><input class="k-in" type="number" min="0" max="30" name="jeda" value="${E(o.jeda)}" data-chg="sim"></label>
+<label class="k-f"><span>Selesai paling lambat</span><input class="k-in" type="time" name="batas" value="${E(o.batas)}" data-chg="sim"><small>Hari yang melewati jam ini ditandai merah.</small></label>
+</div></div></form>
+<div id="sim-out"></div>
+<div class="k-bar sticky sa-save"><span class="mut sm" style="margin-right:auto">Aturan tersimpan: <b>${E(ATURAN_L[d.cfg.otomatis] || d.cfg.otomatis)}</b>${d.cfg.batas ? ' · batas selesai ' + E(d.cfg.batas) : ''}</span>
+<button class="k-btn k-outline" data-act="sim-xls"><i class="bi bi-file-earmark-excel"></i> Unduh Excel</button>
+<button class="k-btn k-navy" data-act="sim-simpan"><i class="bi bi-save"></i> Simpan aturan & jam</button>
+<button class="k-btn lg k-orange" data-act="sim-terapkan" ${bisaTerapkan && o.aturan !== 'OFF' ? '' : 'disabled'} title="${bisaTerapkan ? '' : d.kunciNo ? 'Buku Acara sudah terbit' : 'Aktif setelah pendaftaran ditutup'}"><i class="bi bi-check2-all"></i> Terapkan nomor final</button></div></div>`);
+  gambarSimOut();
+}
+function gambarSimOut() {
+  const el = $('#sim-out'); if (!el) return; const A = S.SA, d = A.d, o = S.SIM, R = S.SIMR = simHitung(o);
+  const kpi = `<div class="sa-top"><div class="sa-kpi"><span><b>${R.acara}</b> acara final</span><span class="${R.lewat.length ? 'warn' : ''}"><b>${R.lewat.length}</b> nomor dilewati${R.entriLewat ? ` (${R.entriLewat} entri terdampak)` : ''}</span><span><b>${R.peserta}</b> start</span>${R.hari.map(x => `<span class="${x.lebih ? 'bad' : ''}">Hari ${x.h}: <b>${x.selesai ? x.mulai + '–' + x.selesai : 'kosong'}</b>${x.lebih ? ` (lewat ${durTeks(x.lebih)})` : ''}</span>`).join('')}</div></div>`;
+  const hari = R.hari.map(x => card(`Hari ${x.h}${x.selesai ? ` · ${x.mulai}–${x.selesai}` : ''}${x.lebih ? ' <span class="k-pill k-err">lewat batas ' + E(o.batas) + '</span>' : ''}`, x.L.length ? `<div class="k-scroll"><table class="k-table sim-t"><thead><tr><th>Acara</th><th>Nomor</th><th>Kelompok</th><th>Peserta</th><th>Seri</th><th>Jam</th></tr></thead><tbody>${x.L.map(it => `<tr class="${it.kosong ? 'mut' : ''}"><td class="mono"><b>#${it.no}</b></td><td><b>${E(it.r.nama)}</b>${!A.renomor || d.kunciNo ? ` <small class="mut mono">(kini #${it.r.no})</small>` : ''}</td><td>${E(jn(it.r.jk))} ${G_L[it.r.g] || ''}</td><td>${it.n}</td><td>${it.kosong ? '—' : it.heats}</td><td class="mono">${it.kosong ? '<span class="sm">kosong · tidak tampil di Buku Acara</span>' : it.mulai + '–' + it.selesai}${it.bentrok ? ' <span class="k-pill k-warn">bentrok jam manual</span>' : ''}</td></tr>${(it.ist || []).map(b => `<tr class="sim-ist"><td></td><td colspan="5"><i class="bi bi-cup-hot"></i> <b>${E(b.label)}</b> — ${b.menit} menit · <span class="mono">${b.mulai}–${b.selesai}</span></td></tr>`).join('')}`).join('')}</tbody></table></div>` : '<p class="mut">Semua nomor di hari ini dilewati. Saat diterapkan, hari berikutnya maju menjadi hari ini.</p>', '', true)).join('');
+  const lewat = R.lewat.length ? card(`<i class="bi bi-skip-forward"></i> Dilewati (${R.lewat.length})`, `<div class="sa-tl">${R.lewat.map(x => `<span class="sa-bt"><span class="mono">kini #${x.r.no}</span> ${E(x.r.nama)} · ${E(jn(x.r.jk))} · ${G_L[x.r.g] || ''} <small>(${x.alasan})</small></span>`).join('')}</div>${R.entriLewat ? `<p class="mut sm" style="margin-top:8px">Ada ${R.entriLewat} entri di nomor yang dilewati. Setelah diterapkan, pindahkan pesertanya lewat <b>Akun & Berkas</b> dan beri tahu pendaftarnya.</p>` : ''}`) : '';
+  el.innerHTML = kpi + hari + lewat;
+}
+INP.sim = i => { const o = S.SIM; o[i.name] = i.type === 'number' ? Number(i.value) : i.value; if (i.name === 'skenario') { const f = $('[name=faktor]'); if (f) f.disabled = i.value !== 'faktor'; } if (i.name === 'aturan') { const b = $('[data-act=sim-terapkan]'); if (b) b.disabled = !(bisaTerapkanF(S.SA.d) && i.value !== 'OFF'); } gambarSimOut(); };
+ACT['sim-simpan'] = async a => {
+  const o = S.SIM; busy(a, true);
+  try { await rp('jd.set', { cfg: { otomatis: o.aturan, batas: o.batas || '', mulai: o.mulai, jeda: String(o.jeda || 0) } }); toast('Aturan nomor final, jam mulai, jeda, dan batas selesai disimpan.'); bustCache('jd'); S.SIM = null; go('a-jadwal'); }
+  catch (e) { toast(e.message, 'err'); busy(a, false); }
+};
+ACT['sim-terapkan'] = async a => {
+  const A = S.SA, o = S.SIM, R = S.SIMR || simHitung(o); if (A.dirty) return toast('Simpan susunan di tab Susun acara dulu.', 'warn');
+  if (o.dasar !== 'semua' || o.skenario !== 'kini') return toast('Terapkan memakai pendaftar saat ini (semua yang belum ditolak). Ubah dasar & skenario ke pilihan pertama, lalu periksa lagi.', 'warn');
+  if (!(await ask(`Terapkan nomor acara final <b>#1–#${R.acara}</b>${R.lewat.length ? ` dan lewati <b>${R.lewat.length} nomor</b>` : ''}?${R.entriLewat ? ` ${R.entriLewat} entri ada di nomor yang dilewati.` : ''} Nomor acara di start list, jadwal web, dan Buku Acara ikut berubah.`, 'Terapkan'))) return;
+  busy(a, true);
+  try { const r = await rp('jd.final', { aturan: o.aturan }); toast(r.message, r.data.entriTerdampak ? 'warn' : 'ok'); bustCache('jd'); bustCache('evl'); bustCache('evg'); await S.refreshAll(); S.SIM = null; go('a-jadwal'); }
+  catch (e) { toast(e.message, 'err'); busy(a, false); }
+};
+ACT['sim-xls'] = async a => {
+  const R = S.SIMR || simHitung(S.SIM), o = S.SIM, rows = []; busy(a, true);
+  R.hari.forEach(x => x.L.forEach(it => { rows.push({ Hari: x.h, Acara: it.no, Nomor: it.r.nama, Kelompok: jn(it.r.jk), Gender: G_L[it.r.g] || it.r.g, Peserta: it.n, Seri: it.kosong ? '' : it.heats, Mulai: it.kosong ? '' : it.mulai, Selesai: it.kosong ? '' : it.selesai, Keterangan: it.kosong ? 'Kosong' : it.bentrok ? 'Bentrok jam manual' : '' }); (it.ist || []).forEach(b => rows.push({ Hari: x.h, Acara: '', Nomor: b.label, Kelompok: '', Gender: '', Peserta: '', Seri: '', Mulai: b.mulai, Selesai: b.selesai, Keterangan: b.menit + ' menit' })); }));
+  const ringkas = [{ Butir: 'Dasar peserta', Nilai: o.dasar === 'sah' ? 'Sah & lunas' : 'Semua pendaftar (belum ditolak)' }, { Butir: 'Skenario', Nilai: o.skenario === 'faktor' ? 'Pendaftar × ' + o.faktor : 'Pendaftar saat ini' }, { Butir: 'Aturan', Nilai: ATURAN_L[o.aturan] }, { Butir: 'Acara final', Nilai: R.acara }, { Butir: 'Nomor dilewati', Nilai: R.lewat.length }].concat(R.hari.map(x => ({ Butir: 'Hari ' + x.h, Nilai: x.selesai ? x.mulai + '–' + x.selesai + (x.lebih ? ' (lewat batas ' + o.batas + ')' : '') : 'kosong' })));
+  try { await xlsx([{ name: 'Program', rows }, { name: 'Dilewati', rows: R.lewat.map(x => ({ 'Nomor kini': x.r.no, Nomor: x.r.nama, Kelompok: jn(x.r.jk), Gender: G_L[x.r.g] || x.r.g, Peserta: x.n, Alasan: x.alasan })) }, { name: 'Ringkasan', rows: ringkas }], 'Simulasi_Program_' + new Date().toISOString().slice(0, 10) + '.xlsx'); toast('Excel simulasi diunduh.'); }
+  catch (e) { toast(e.message, 'err'); }
+  busy(a, false);
 };
 function pasangDnD() {
   const bd = $('#sa-board'); if (!bd) return; let drag = null;
@@ -955,24 +1124,47 @@ V['a-hasil'] = function (id) {
   const fase = S.B.cfg.fase, terkunci = !isSA() && fase !== 'PELAKSANAAN';
   swr('hev', 'h.events', {}, L => {
     if (!L.length) return main(`<div class="k-wrap pad">${ph('Input Hasil Lomba', '')}${alertx('info', 'Belum ada start list. Start list dibuat setelah pendaftaran ditutup.')}${rekapHost}</div>`), S.rekapBox('#rk-host');
-    id = id || S.hcur || (L.filter(e => e.st !== 'SAH')[0] || L[0]).id; S.hcur = id;
+    S.hevL = L; id = id || S.hcur || (L.filter(e => e.st !== 'SAH')[0] || L[0]).id; S.hcur = id;
     main(`<div class="k-wrap pad">${ph('Input Hasil Lomba', `Fase: <b>${E(FASE_L[fase] || fase)}</b>`, `<button class="k-btn k-outline" data-act="bk-xls"><i class="bi bi-file-earmark-excel"></i> Excel buku acara</button>`)}${terkunci ? alertx('warn', 'Input hasil dibuka setelah Super Admin memulai tahap <b>Pelaksanaan</b>. Anda tetap dapat melihat start list.', 'bi-lock') : ''}${evSelect(L, id, 'a-hasil')}<div id="h-body">${'<div class="k-skel"></div>'}</div>${rekapHost}</div>`);
     S.rekapBox('#rk-host'); loadHasil(id, terkunci);
   }, 3000);
 };
+/* Cache data nomor (h.load) di memori: pindah nomor tampil seketika, lalu diperiksa ke server.
+   Setelah satu nomor terbuka, 2 nomor berikutnya diambil di latar (1 eksekusi batch). Aksi tulis mengosongkan cache ini. */
+S.hl = S.hl || {};
+const hlCache = (id, umur) => { const c = S.hl[id]; return c && Date.now() - c.t < (umur || 300000) ? c.d : null; };
+const hlAmbil = id => rp('h.load', { id }).then(r => { S.hl[id] = { t: Date.now(), d: r.data }; return r.data; });
+function hlPrefetch(id, mode) {
+  const L = S.hevL || [], i = L.findIndex(e => e.id === id); if (i < 0) return;
+  L.slice(i + 1).filter(e => mode === 'h' ? e.st !== 'SAH' : e.st === 'SUBMITTED').slice(0, 2).forEach(e => { if (!hlCache(e.id, 60000)) hlAmbil(e.id).catch(() => { }); });
+}
+// Prefetch menu Input Hasil / Wasit: daftar nomor, lalu data nomor yang akan dibuka pertama kali
+const preNomor = mode => () => [['hev', 'h.events', {}, 3000, L => { S.hevL = L; const cur = mode === 'h' ? S.hcur : S.wcur, id = cur || ((mode === 'h' ? L.filter(e => e.st !== 'SAH')[0] : L.filter(e => e.st === 'SUBMITTED')[0]) || L[0] || {}).id; if (id && !hlCache(id, 60000)) hlAmbil(id).catch(() => { }); }]];
+KRP.PRE['a-hasil'] = preNomor('h'); KRP.PRE['a-wasit'] = preNomor('w');
 function draftKey(id) { return 'krp_draft_' + (S.me.id) + '_' + id; }
-async function loadHasil(id, terkunci) {
-  try {
-    const d = (await rp('h.load', { id })).data, el = $('#h-body'); if (!el || S.hcur !== id) return; S.hd = d;
+function renderHasil(id, terkunci, d) {
+  {
+    const el = $('#h-body'); if (!el || S.hcur !== id) return; S.hd = d; S.hDirty = false;
     const lock = terkunci || d.st === 'SAH' || d.st === 'SUBMITTED'; S.hver = d.ver; S.hverId = id; hPantau(id, 'h'); let draft = {}; try { draft = JSON.parse(LS.g(draftKey(id)) || '{}'); } catch (e) { }
     el.innerHTML = `<div class="k-evh"><div><span class="tag">EVENT ${d.event.no}${d.event.jam ? ' · ' + E(d.event.jam) + ' WIB' : ''}</span><h2>${E(evTitle(d.event))}</h2><p>${d.heats.length} seri · status: ${pill(d.st)}</p></div>${d.rec ? `<div class="rec"><small>Rekor</small><b class="mono">${E(d.rec.waktu)}</b><small>${E(d.rec.nama)}</small></div>` : ''}</div>
 <div id="h-konflik"></div>${LS.g(draftKey(id) + '_bak') ? `<div class="k-alert warn"><i class="bi bi-life-preserver"></i><div>Isian Anda yang belum tersimpan (karena bentrok dengan perubahan orang lain) masih tersimpan di perangkat ini. <button type="button" class="k-btn sm k-outline" data-act="h-pulih">Pulihkan isian saya ke layar</button> <button type="button" class="k-btn sm k-ghostw" data-act="h-buangbak">Buang</button></div></div>` : ''}${d.ubah && d.ubah.oleh ? `<p class="mut sm">Terakhir diubah oleh <b>${E(d.ubah.oleh)}</b> · ${fdt(d.ubah.at)}</p>` : ''}${d.st === 'SAH' ? alertx('ok', `Disahkan oleh <b>${E(d.so.oleh)}</b> · ${fdt(d.so.at)}. Hasil terkunci.`, 'bi-patch-check') : d.st === 'SUBMITTED' ? alertx('info', 'Hasil sudah dikirim dan menunggu pengesahan wasit.') : ''}
 ${lock ? '' : '<p class="mut sm h-kb"><i class="bi bi-keyboard"></i> <b>Enter</b> / <b>↓</b> ke atlet berikutnya · <b>↑</b> atlet sebelumnya · <b>→ ←</b> pindah Status / Waktu / Keterangan. Status bisa diganti dengan mengetik huruf O (OK) atau D (DQ/DNS/DNF).</p>'}<form data-submit="hsimpan" onsubmit="return false">${d.heats.map(h => card(`Seri ${h.n}`, `<div class="k-scroll"><table class="k-table"><thead><tr><th>Lane</th><th>Atlet</th><th>Seed</th><th>Status</th><th>Waktu (mm:ss.cc)</th><th>Ket / alasan DQ</th><th>Rank</th></tr></thead><tbody>${h.rows.map(r => { const x = draft[r.id] || {}, w = x.w !== undefined ? x.w : r.waktu, st = x.st || r.st, dq = x.dq !== undefined ? x.dq : r.dq; return `<tr data-aid="${r.id}"><td class="mono"><b>${r.lane}</b></td><td><b>${E(r.nama)}</b><br><small class="mut">${E(r.sk || r.kl)}</small></td><td class="mono">${E(r.seed)}</td><td>${sel('st', ['OK', 'DQ', 'DNS', 'DNF'], st, `data-chg="h-dirty" ${lock ? 'disabled' : ''}`)}</td><td><input class="k-in tm sm mono" name="w" data-in="h-dirty" value="${E(w)}" placeholder="00:00.00" ${lock || st !== 'OK' ? 'disabled' : ''} inputmode="decimal" style="width:120px"></td><td><input class="k-in sm" name="dq" data-in="h-dirty" value="${E(dq)}" placeholder="${st === 'DQ' ? 'Kode DQ wajib' : ''}" ${lock || st === 'OK' || st === 'DNS' ? 'disabled' : ''}></td><td>${r.rank ? `<span class="md ${r.rank === 1 ? 'g' : r.rank === 2 ? 's' : r.rank === 3 ? 'b' : ''}">${r.rank}</span>` : '–'}${r.baru ? ' <span class="k-pill k-warn">Rekor</span>' : ''}</td></tr>`; }).join('')}</tbody></table></div>`, '', true)).join('')}
 <div class="k-bar sticky">${d.st === 'SAH' || d.st === 'SUBMITTED' ? `<button type="button" class="k-btn k-ghostw" data-act="h-tarik"><i class="bi bi-arrow-counterclockwise"></i> Tarik untuk perbaikan</button>` : `<span class="mut sm" id="h-saved" style="margin-right:auto"></span><button type="button" class="k-btn k-outline" data-act="h-save" data-k="0" ${lock ? 'disabled' : ''}>Simpan draf</button><button type="button" class="k-btn lg k-orange" data-act="h-save" data-k="1" ${lock ? 'disabled' : ''}><i class="bi bi-send"></i> Kirim ke Wasit</button>`}</div></form>`;
-  } catch (e) { const el = $('#h-body'); if (el) el.innerHTML = alertx('err', E(e.message)); }
+  }
+}
+async function loadHasil(id, terkunci) {
+  const c = hlCache(id); if (c) renderHasil(id, terkunci, c);
+  try {
+    const d = await hlAmbil(id); if (S.hcur !== id || !$('#h-body')) return;
+    if (c && c.ver === d.ver) return hlPrefetch(id, 'h');
+    if (c && S.hDirty) { const box = $('#h-konflik'); if (box) box.innerHTML = alertx('warn', 'Data nomor ini sudah diperbarui di server sejak terakhir dibuka. Isian di layar belum tentu yang terbaru. <button type="button" class="k-btn sm k-outline" data-act="h-muat">Muat data terbaru</button>', 'bi-arrow-repeat'); }
+    else renderHasil(id, terkunci, d);
+    hlPrefetch(id, 'h');
+  } catch (e) { if (!c) { const el = $('#h-body'); if (el) el.innerHTML = alertx('err', E(e.message)); } else toast(e.message, 'err'); }
 }
 function hRows() { return $$('#h-body tr[data-aid]').map(tr => ({ id: tr.dataset.aid, st: $('[name=st]', tr) ? $('select', tr).value : 'OK', waktu: $('[name=w]', tr).value.trim(), dq: $('[name=dq]', tr).value.trim(), cat: '' })); }
 INP['h-dirty'] = i => {
+  S.hDirty = true;
   const tr = i.closest('tr'); if (i.tagName === 'SELECT') { const st = i.value; $('[name=w]', tr).disabled = st !== 'OK'; $('[name=dq]', tr).disabled = st === 'OK' || st === 'DNS'; if (st !== 'OK') $('[name=w]', tr).value = ''; }
   clearTimeout(S._hd); S._hd = setTimeout(() => { const o = {}; hRows().forEach(r => o[r.id] = { w: r.waktu, st: r.st, dq: r.dq }); LS.s(draftKey(S.hcur), JSON.stringify(o)); const s = $('#h-saved'); if (s) s.textContent = 'Draf otomatis tersimpan di perangkat ' + new Date().toTimeString().slice(0, 5); }, 400);
 };
@@ -1012,14 +1204,14 @@ function hPantau(id, mode) {
     const rt = mode === 'h' ? 'a-hasil' : 'a-wasit', cur = mode === 'h' ? S.hcur : S.wcur; if (S.route !== rt || cur !== id) return clearInterval(S._hPan); if (document.hidden) return;
     let v; try { v = (await rp('h.ver', { id })).data; } catch (e) { return; }
     if (mode === 'h') { if (v.ver === S.hver) return; const box = $('#h-konflik'); if (box) box.innerHTML = alertx('warn', `Nomor ini baru saja diubah${v.ubah && v.ubah.oleh ? ' oleh <b>' + E(v.ubah.oleh) + '</b> pukul ' + E((/(\d{1,2}:\d{2})(?::\d{2})?\s*$/.exec(String(v.ubah.at)) || [])[1] || '') : ''} (status: ${E(v.st)}). Isian di layar Anda belum tentu yang terbaru. <button type="button" class="k-btn sm k-outline" data-act="h-muat">Muat data terbaru</button>`, 'bi-people'); }
-    else if (v.ver !== S.wver) { toast('Hasil nomor ini berubah. Menampilkan data terbaru — periksa ulang sebelum tanda tangan.', 'warn'); bustCache('hev'); loadWasit(id); }
+    else if (v.ver !== S.wver) { toast('Hasil nomor ini berubah. Menampilkan data terbaru — periksa ulang sebelum tanda tangan.', 'warn'); delete S.hl[id]; bustCache('hev'); loadWasit(id); }
   }, 20000);
 }
 function hKonflik(e, kirim) {
   const i = e.info || {}, bisaTimpa = i.st === 'DRAFT' || i.st === 'NONE';
   modal('Data bentrok dengan pengguna lain', `<p>${E(e.message)}</p><p class="mut sm">Isian Anda <b>tidak hilang</b>: tetap tersimpan di perangkat ini dan bisa dipulihkan.</p><p class="mut sm"><b>Muat data terbaru</b>: tampilkan data orang lain; isian Anda disimpan sebagai cadangan.${bisaTimpa ? ' <b>Timpa dengan isian saya</b>: isian Anda menggantikan data tersebut.' : ''}</p><div class="k-bar" style="flex-wrap:wrap"><button type="button" class="k-btn k-navy" data-act="h-muat">Muat data terbaru</button>${bisaTimpa ? `<button type="button" class="k-btn k-orange" data-act="h-timpa" data-k="${kirim ? 1 : 0}">Timpa dengan isian saya</button>` : ''}</div>`);
 }
-ACT['h-muat'] = () => { const k = draftKey(S.hcur), o = {}; hRows().forEach(r => o[r.id] = { w: r.waktu, st: r.st, dq: r.dq }); LS.s(k + '_bak', JSON.stringify(o)); LS.d(k); closeModal(); bustCache('hev'); loadHasil(S.hcur, false); };
+ACT['h-muat'] = () => { const k = draftKey(S.hcur), o = {}; hRows().forEach(r => o[r.id] = { w: r.waktu, st: r.st, dq: r.dq }); LS.s(k + '_bak', JSON.stringify(o)); LS.d(k); closeModal(); delete S.hl[S.hcur]; bustCache('hev'); loadHasil(S.hcur, false); };
 ACT['h-timpa'] = async a => { busy(a, true); try { const v = (await rp('h.ver', { id: S.hcur })).data; S.hver = v.ver; closeModal(); const b = $(`[data-act=h-save][data-k="${a.dataset.k}"]`); if (b) { if (a.dataset.k === '1') { const r = await rp('h.simpan', { id: S.hcur, kirim: true, rows: hRows(), ver: S.hver }); toast(r.message); LS.d(draftKey(S.hcur)); bustCache('hev'); loadHasil(S.hcur, false); } else ACT['h-save'](b); } } catch (e) { busy(a, false); if (e.code === 'KONFLIK') return hKonflik(e, a.dataset.k === '1'); toast(e.message, 'err'); } };
 ACT['h-pulih'] = () => { const k = draftKey(S.hcur), b = LS.g(k + '_bak'); if (!b) return; LS.s(k, b); LS.d(k + '_bak'); loadHasil(S.hcur, false); toast('Isian Anda dipulihkan ke layar. Periksa, lalu Simpan draf.'); };
 ACT['h-buangbak'] = () => { LS.d(draftKey(S.hcur) + '_bak'); loadHasil(S.hcur, false); };
@@ -1043,19 +1235,27 @@ ACT['bk-xls'] = async a => {
 V['a-wasit'] = function (id) {
   swr('hev', 'h.events', {}, L => {
     if (!L.length) return main(`<div class="k-wrap pad">${ph('Pengesahan Wasit', '')}${alertx('info', 'Belum ada nomor dengan start list.')}${rekapHost}</div>`), S.rekapBox('#rk-host');
-    id = id || S.wcur || (L.filter(e => e.st === 'SUBMITTED')[0] || L[0]).id; S.wcur = id; const n = L.filter(e => e.st === 'SUBMITTED').length;
+    S.hevL = L; id = id || S.wcur || (L.filter(e => e.st === 'SUBMITTED')[0] || L[0]).id; S.wcur = id; const n = L.filter(e => e.st === 'SUBMITTED').length;
     main(`<div class="k-wrap pad">${ph('Pengesahan Wasit', `${n} nomor menunggu pengesahan · Tanda tangan langsung di layar tablet/iPad`)}${evSelect(L, id, 'a-wasit')}<div id="w-body"><div class="k-skel"></div></div>${rekapHost}</div>`); S.rekapBox('#rk-host'); loadWasit(id);
   }, 3000);
 };
-async function loadWasit(id) {
-  try {
-    const d = (await rp('h.load', { id })).data, el = $('#w-body'); if (!el || S.wcur !== id) return; S.hd = d; S.wver = d.ver; hPantau(id, 'w'); const rows = [];
+function renderWasit(id, d) {
+  {
+    const el = $('#w-body'); if (!el || S.wcur !== id) return; S.hd = d; S.wver = d.ver; hPantau(id, 'w'); const rows = [];
     d.heats.forEach(h => h.rows.forEach(r => rows.push(Object.assign({ heat: h.n }, r)))); rows.sort((a, b) => (a.rank || 999) - (b.rank || 999) || a.heat - b.heat || a.lane - b.lane);
     el.innerHTML = `<div class="k-evh"><div><span class="tag">EVENT ${d.event.no}</span><h2>${E(evTitle(d.event))}</h2><p>Status: ${pill(d.st)}</p></div>${d.rec ? `<div class="rec"><small>Rekor</small><b class="mono">${E(d.rec.waktu)}</b></div>` : ''}</div>
 ${card('Hasil untuk diperiksa', `<div class="k-scroll"><table class="k-table"><thead><tr><th>Rank</th><th>Seri/Lane</th><th>Atlet</th><th>Asal</th><th>Waktu</th><th>Ket</th></tr></thead><tbody>${rows.map(r => `<tr><td>${r.rank && r.st === 'OK' ? `<span class="md ${r.rank === 1 ? 'g' : r.rank === 2 ? 's' : r.rank === 3 ? 'b' : ''}">${r.rank}</span>` : '–'}</td><td class="mono">${r.heat}/${r.lane}</td><td><b>${E(r.nama)}</b></td><td>${E(r.sk || r.kl)}</td><td class="mono"><b>${E(r.st === 'OK' ? (r.waktu || '—') : r.st)}</b></td><td>${r.baru ? '<span class="k-pill k-warn">Rekor baru</span>' : ''}${E(r.dq)}</td></tr>`).join('')}</tbody></table></div>`, '', true)}
 ${d.st === 'SUBMITTED' ? `<form class="k-card" data-submit="wsah"><div class="k-card-h"><h3><i class="bi bi-pen"></i> Tanda tangan wasit</h3><button type="button" class="k-btn sm k-ghostw" data-act="ttdclear">Hapus</button></div><div class="k-card-b"><canvas class="k-pad-c" id="ttd"></canvas><p class="mut sm" style="margin-top:6px">Tanda tangan dengan jari atau stylus pada kotak di atas.</p>${field('Catatan (opsional)', inp('catatan', '', { max: 200 }))}<div class="k-bar"><button type="button" class="k-btn k-ghostw" data-act="h-tarik">Kembalikan ke lapangan</button><button class="k-btn lg k-orange"><i class="bi bi-patch-check"></i> Sahkan & Kunci</button></div></div></form>` : d.st === 'SAH' ? `<div class="k-alert ok"><i class="bi bi-patch-check-fill"></i><div>Disahkan <b>${E(d.so.oleh)}</b> · ${fdt(d.so.at)}<br><small class="mono">${E(String(d.so.hash).slice(0, 24))}…</small> ${d.so.ttd ? `<button class="k-btn sm k-outline" data-act="akun-file" data-id="${E(d.so.ttd)}">Lihat tanda tangan</button>` : ''} <button class="k-btn sm k-ghostw" data-act="h-tarik">Tarik hasil</button></div></div>` : alertx('info', 'Hasil belum dikirim oleh Admin Input Data.')}`;
     if (d.st === 'SUBMITTED') initPad();
-  } catch (e) { const el = $('#w-body'); if (el) el.innerHTML = alertx('err', E(e.message)); }
+  }
+}
+async function loadWasit(id) {
+  const c = hlCache(id); if (c) renderWasit(id, c);
+  try {
+    const d = await hlAmbil(id); if (S.wcur !== id || !$('#w-body')) return;
+    if (!c || c.ver !== d.ver) { if (c && S.padDirty) toast('Hasil nomor ini berubah. Menampilkan data terbaru — periksa ulang sebelum tanda tangan.', 'warn'); renderWasit(id, d); }
+    hlPrefetch(id, 'w');
+  } catch (e) { if (!c) { const el = $('#w-body'); if (el) el.innerHTML = alertx('err', E(e.message)); } else toast(e.message, 'err'); }
 }
 function initPad() {
   const c = $('#ttd'); if (!c) return; const r = c.getBoundingClientRect(), dpr = window.devicePixelRatio || 1; c.width = Math.max(300, r.width) * dpr; c.height = 200 * dpr;
@@ -1261,7 +1461,7 @@ SUBMIT.ars = async f => { const l = Number(f.dataset.l), d = form(f); if (!(awai
 
 (function () {
 'use strict';
-const { $, $$, E, S, V, ACT, SUBMIT, rp, swr, toast, busy, ph, card, alertx, field, inp, form, ask, kpi, Perf, GAS_URL } = KRP;
+const { $, $$, E, S, V, ACT, SUBMIT, INP, rp, swr, toast, busy, ph, card, alertx, field, inp, form, ask, kpi, Perf, GAS_URL, go } = KRP;
 const main = h => { $('#main').innerHTML = h; };
 const samarUrl = u => { const m = /\/s\/([A-Za-z0-9_-]+)\/exec/.exec(u || ''); return m ? u.replace(m[1], m[1].slice(0, 6) + '…' + m[1].slice(-4)) : (u || '—'); };
 const NAMA_T = { TBL_PORTAL_CONFIG: 'Pengaturan portal', TBL_MASTER_JENJANG: 'Kelompok/kelas', TBL_EVENT: 'Event', TBL_MASTER_NOMOR_LOMBA: 'Nomor lomba', TBL_USERS_ROLES: 'Akun panitia', TBL_KONTINGEN: 'Akun pendaftar', TBL_ATLET: 'Atlet', TBL_REGISTRASI_ENTRI: 'Pendaftaran nomor', TBL_MUTASI_ATLET: 'Pengajuan', TBL_HEAT_SEEDS: 'Start list', TBL_RACE_RESULTS: 'Hasil lomba', TBL_WASIT_SIGNOFF: 'Pengesahan wasit', TBL_REKOR_KEJUARAAN: 'Rekor', TBL_EVENT_ARCHIVE_LOG: 'Arsip event', TBL_HASIL_ARSIP: 'Hasil lama (impor)', TBL_DOKUMEN: 'Dokumen', TBL_GALERI: 'Galeri', TBL_AUDIT_LOG: 'Log audit', TBL_HASIL_JURNAL: 'Jurnal hasil' };
@@ -1271,6 +1471,7 @@ V['a-sistem'] = function () {
   swr('migg', 'mig.grup', {}, G => {
     S.migG = G; const p = Perf.rata();
     main(`<div class="k-wrap pad">${ph('Sistem & Migrasi', 'Status koneksi frontend ↔ API Apps Script, dan pemindahan data dari app lama.')}
+<div id="sys-db">${card('<i class="bi bi-database"></i> Database & kuota Supabase', '<div class="k-skel"></div>')}</div>
 <div class="g-main"><div>
 ${card('Pindahkan data dari app lama', `<p class="sm">Spreadsheet app lama <b>hanya dibaca</b>, tidak pernah diubah. Data dicocokkan berdasarkan nama kolom dan ID, jadi aman dijalankan berulang (tidak dobel). Berkas Drive (foto, akta, bukti bayar, logo) tetap terbaca selama app baru dipasang di <b>akun Google yang sama</b>.</p>
 <form data-submit="mig" id="mig-f">${field('URL atau ID spreadsheet database app lama', inp('sumber', S.migSrc || '', { req: 1, ph: 'https://docs.google.com/spreadsheets/d/…' }), 1)}
@@ -1280,17 +1481,100 @@ ${card('Pindahkan data dari app lama', `<p class="sm">Spreadsheet app lama <b>ha
 <div id="mig-out"></div>`)}
 ${card('Langkah pindah ke app baru (cutover)', `<ol class="sm" style="margin:0 0 0 18px;line-height:1.8"><li>Pasang app baru (Apps Script + GitHub Pages), login Super Admin.</li><li><b>Pindai</b> → periksa angka → <b>Jalankan migrasi</b>.</li><li>Cek akun, atlet, event, foto, dan pengaturan. Uji masuk dengan 1 akun pendaftar.</li><li>Tepat sebelum pindah: jalankan migrasi <b>sekali lagi</b> (delta) untuk menangkap data baru di app lama.</li><li>Umumkan alamat baru, lalu arsipkan deployment lama (datanya tetap aman).</li></ol><p class="mut sm" style="margin-top:8px">Sesi login tidak ikut pindah: semua pengguna cukup masuk ulang dengan kata sandi yang sama.</p>`)}
 </div><div>
+<div id="sys-sec">${card('<i class="bi bi-shield-lock"></i> Keamanan', '<div class="k-skel"></div>')}</div>
 ${card('Koneksi API', `<div class="k-kpis" id="sys-k">${kpi('Rata-rata total', p ? p.total + ' ms' : '–', 'bi-speedometer')}${kpi('Waktu server', p ? p.server + ' ms' : '–', 'bi-cpu')}${kpi('Jaringan', p ? p.net + ' ms' : '–', 'bi-wifi')}</div>
 <p class="sm" style="margin:10px 0 4px">Alamat API: <code>${E(samarUrl(GAS_URL))}</code></p><p class="sm mut" id="sys-v">Versi frontend: ${E((window.KRP_CONFIG || {}).VERSI || '-')}</p>
 <div class="k-bar"><button class="k-btn k-navy sm" data-act="sys-ping"><i class="bi bi-activity"></i> Uji koneksi</button></div>
 <p class="mut sm" style="margin-top:8px">Diukur dari ${p ? p.n : 0} permintaan terakhir di perangkat ini. Waktu server tinggi → data besar/cache dingin; jaringan tinggi → koneksi pengguna.</p>`)}
 ${card('Tips performa hari pelaksanaan', `<ul class="sm" style="margin:0 0 0 18px;line-height:1.7"><li>Halaman web dilayani GitHub Pages; hanya data yang memakai kuota Apps Script.</li><li>Cache publik dipanaskan otomatis tiap 10 menit (trigger <code>pemanasan_</code>).</li><li>Atur jeda Hasil Live 45–60 detik di Pengaturan Web saat pengunjung ramai.</li><li>Isi <b>Alamat portal</b> di Pengaturan Web agar tautan di email mengarah ke GitHub Pages.</li></ul>`)}
 </div></div></div>`);
+    swr('keam', 'sys.keamanan', {}, drawSec, 30000);
+    swr('sbst', 'sb.status', {}, drawDb, 60000);
   }, 60000);
 };
+/* ===== Database & kuota Supabase: status koneksi, pemakaian vs batas paket, pindah Sheets ↔ Supabase dari web ===== */
+const fb = n => { n = Number(n) || 0; const f = (v, d) => v.toLocaleString('id-ID', { maximumFractionDigits: d }); return n < 1024 ? f(n, 0) + ' B' : n < 1048576 ? f(n / 1024, 1) + ' KB' : n < 1073741824 ? f(n / 1048576, 1) + ' MB' : f(n / 1073741824, 2) + ' GB'; };
+const angka = n => (Number(n) || 0).toLocaleString('id-ID');
+const meter = (judul, pakai, batas, ket) => { const p = batas ? Math.min(100, pakai / batas * 100) : 0, k = p >= 95 ? 'err' : p >= 80 ? 'warn' : ''; return `<div class="sb-m"><div class="sb-mh"><span>${judul}</span><b class="mono">${fb(pakai)} <small class="mut">/ ${fb(batas)}</small></b></div><div class="k-prog"><i class="${k}" style="width:${Math.max(p, pakai ? 1 : 0).toFixed(1)}%"></i></div><small class="mut">${p.toLocaleString('id-ID', { maximumFractionDigits: 1 })}% terpakai${ket ? ' · ' + ket : ''}</small></div>`; };
+function drawDb(x) {
+  const el = $('#sys-db'); if (!el) return; S.sbSt = x;
+  const B = x.batas[x.paket] || x.batas.FREE, P = x.pakai || {}, hr = new Date().toISOString().slice(0, 10), hi = (P.hari || {})[Object.keys(P.hari || {}).sort().pop()] || [0, 0];
+  const st = !x.siap ? '<span class="k-pill k-neu">Belum diatur</span>' : x.terhubung ? '<span class="k-pill k-ok">Terhubung</span>' : '<span class="k-pill k-err">Gagal terhubung</span>';
+  const aktif = x.mode === 'SUPABASE' ? '<span class="k-pill k-ok"><i class="bi bi-database-check"></i> Supabase</span>' : '<span class="k-pill k-navy"><i class="bi bi-table"></i> Google Sheets</span>';
+  const tot = x.nama.reduce((s, n) => s + ((x.tabel[n] || {}).n || 0), 0), totS = x.sheet ? x.nama.reduce((s, n) => s + (x.sheet[n] || 0), 0) : 0;
+  const info = !x.siap ? alertx('info', `<b>Supabase belum diatur.</b> Data tersimpan di Google Sheets. Untuk pindah: (1) jalankan <code>SETUP_SUPABASE.sql</code> di SQL Editor Supabase, (2) isi <code>SUPABASE_URL</code> & <code>SUPABASE_SERVICE_KEY</code> di Apps Script → Project Settings → Script Properties, (3) muat ulang kartu ini lalu klik <b>Pindahkan ke Supabase</b>.`, 'bi-info-circle')
+    : x.galat ? alertx('err', `<b>Tidak bisa terhubung ke Supabase.</b> ${E(x.galat)}`, 'bi-plug')
+    : x.kurang.length ? alertx('warn', `Tabel belum ada di Supabase: ${x.kurang.map(E).join(', ')}. Jalankan ulang <code>SETUP_SUPABASE.sql</code>.`, 'bi-exclamation-triangle')
+    : x.mode === 'SHEETS' ? alertx(tot ? 'warn' : 'info', `<b>App masih memakai Google Sheets.</b> ${tot ? `Supabase berisi ${angka(tot)} baris dari salinan sebelumnya (bukan data terbaru).` : 'Supabase masih kosong karena app belum dipindahkan.'} Data di spreadsheet: ${angka(totS)} baris. Klik <b>Pindai</b> untuk melihat rinciannya, lalu <b>Pindahkan ke Supabase</b>.`, 'bi-table')
+    : alertx('ok', `<b>App memakai Supabase.</b> Semua data baru tersimpan di Supabase. Spreadsheet lama tidak ditulis lagi dan menjadi cadangan.`, 'bi-database-check');
+  const kuota = x.terhubung ? `<div class="sb-q"><div class="sb-qh"><b>Pemakaian bulan ini</b><label class="sm">Paket <select class="k-in sb-pk" data-chg="sb-paket">${Object.keys(x.batas).map(k => `<option value="${k}"${k === x.paket ? ' selected' : ''}>${E(x.batas[k].nama)}</option>`).join('')}</select></label></div>
+${x.sqlLama ? alertx('warn', 'Ukuran database belum terbaca: jalankan ulang <code>SETUP_SUPABASE.sql</code> versi terbaru (menambah fungsi <code>krp_kuota</code>). Aman diulang, data tidak terhapus.', 'bi-arrow-repeat') : meter('Ukuran database', x.db, B.db, 'termasuk tabel sistem Supabase')}
+${meter('Egress (data keluar)', P.b || 0, B.egress, 'perkiraan dari Apps Script')}
+<ul class="k-list sec-list"><li><span>Permintaan ke Supabase</span><b>${angka(P.n)} <small class="mut">bulan ini · ${angka(hi[0])} hari ini</small></b></li>
+<li><span>Terakhir terhubung</span><b>${P.u ? KRP.fdt(new Date(P.u).toISOString(), 1) : '–'}</b></li>
+<li><span>Penyimpanan berkas</span><span class="sm mut">Tidak dipakai: foto, akta & bukti bayar disimpan di Google Drive</span></li>
+<li><span>Pengguna aktif (MAU)</span><span class="sm mut">Tidak dipakai: login lewat Apps Script</span></li>
+${B.jeda ? '<li><span>Jeda otomatis (Free)</span><span class="sm mut">Proyek dijeda bila 1 minggu tanpa aktivitas. Trigger pemanasan menyentuh database minimal tiap jam, jadi proyek tetap aktif.</span></li>' : ''}</ul>
+${P.lalu ? `<p class="sm mut">Bulan lalu (${E(P.lalu.bln)}): ${angka(P.lalu.n)} permintaan · ${fb(P.lalu.b)} egress.</p>` : ''}
+<p class="sm mut">Egress dihitung dari isi respons Supabase ke Apps Script (header & akses dasbor Supabase tidak ikut). Angka resmi ada di halaman Usage Supabase.</p></div>` : '';
+  const tabel = x.terhubung || x.sheet ? `<details class="sb-det"><summary>Rincian per tabel (${x.nama.length})</summary><div class="k-scroll"><table class="k-table"><thead><tr><th>Data</th>${x.sheet ? '<th>Sheets</th>' : ''}<th>Supabase</th><th>Ukuran</th></tr></thead><tbody>${x.nama.map(n => { const t = x.tabel[n] || {}; return `<tr><td>${E(NAMA_T[n] || n)}</td>${x.sheet ? `<td class="mono">${x.sheet[n] == null ? '–' : angka(x.sheet[n])}</td>` : ''}<td class="mono">${x.terhubung ? (x.tabel[n] ? angka(t.n) : '<span class="err-t">tidak ada</span>') : '–'}</td><td class="mono sm">${t.b ? fb(t.b) : '–'}</td></tr>`; }).join('')}</tbody></table></div></details>` : '';
+  const tb = [];
+  if (x.siap && x.terhubung && x.mode === 'SHEETS') tb.push('<button class="k-btn k-outline sm" data-act="sb-pindai"><i class="bi bi-search"></i> Pindai</button>', `<button class="k-btn k-orange sm" data-act="sb-pindah" data-v="aktifkan" ${x.kurang.length ? 'disabled' : ''}><i class="bi bi-cloud-upload"></i> Pindahkan ke Supabase</button>`);
+  if (x.mode === 'SUPABASE') tb.push('<button class="k-btn k-ghostw sm" data-act="sb-pindah" data-v="kembali"><i class="bi bi-arrow-counterclockwise"></i> Kembali ke Google Sheets</button>', '<button class="k-btn k-ghostw sm" data-act="sb-pindah" data-v="cache"><i class="bi bi-eraser"></i> Kosongkan cache tabel</button>');
+  if (x.siap) tb.push('<a class="k-btn k-ghostw sm" href="https://supabase.com/dashboard/org/_/usage" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Halaman Usage Supabase</a>');
+  el.innerHTML = card('<i class="bi bi-database"></i> Database & kuota Supabase', `<div class="sb-top"><div><small class="mut">Database aktif</small>${aktif}</div><div><small class="mut">Supabase</small><span>${x.host ? `<code>${E(x.host)}</code> ` : ''}${st}</span></div>${x.terhubung ? `<div><small class="mut">Total baris di Supabase</small><b class="mono">${angka(tot)}</b></div>` : ''}</div>
+${info}${kuota}${tabel}<div id="sb-out"></div>${tb.length ? `<div class="k-bar" style="flex-wrap:wrap">${tb.join('')}</div>` : ''}`, '<button class="k-btn k-ghostw sm" data-act="sb-muat" title="Muat ulang"><i class="bi bi-arrow-clockwise"></i></button>');
+}
+ACT['sb-muat'] = async a => { busy(a, true); KRP.bustCache('sbst'); try { drawDb((await rp('sb.status')).data); } catch (e) { toast(e.message, 'err'); } busy(a, false); };
+INP['sb-paket'] = async i => { try { const r = await rp('sb.paket', { paket: i.value }); toast(r.message); KRP.bustCache('sbst'); drawDb((await rp('sb.status')).data); } catch (e) { toast(e.message, 'err'); } };
+ACT['sb-pindai'] = async a => {
+  busy(a, true);
+  try {
+    const x = (await rp('sb.pindai')).data, L = Object.keys(x.tabel), tot = L.reduce((s, n) => s + x.tabel[n].sheet, 0), masalah = L.filter(n => x.tabel[n].kosong || x.tabel[n].ganda || !x.tabel[n].ada);
+    $('#sb-out').innerHTML = alertx(masalah.length ? 'warn' : 'info', `<b>Hasil pindai (tidak ada yang ditulis).</b> ${angka(tot)} baris di Sheets akan disalin ke Supabase.${masalah.length ? ' Periksa catatan di tabel.' : ' Siap dipindahkan.'}`, 'bi-search')
+      + `<div class="k-scroll"><table class="k-table"><thead><tr><th>Data</th><th>Di Sheets</th><th>Di Supabase sekarang</th><th>Catatan</th></tr></thead><tbody>${L.map(n => { const t = x.tabel[n]; return `<tr><td>${E(NAMA_T[n] || n)}</td><td class="mono">${angka(t.sheet)}</td><td class="mono">${t.ada ? angka(t.supabase) : '–'}</td><td class="sm ${t.ada ? 'mut' : 'err-t'}">${[!t.ada ? 'tabel belum ada: jalankan SETUP_SUPABASE.sql' : '', t.kosong ? t.kosong + ' baris tanpa ID dilewati' : '', t.ganda ? t.ganda + ' ID ganda digabung' : ''].filter(Boolean).join(' · ')}</td></tr>`; }).join('')}</tbody></table></div>`;
+  } catch (e) { toast(e.message, 'err'); }
+  busy(a, false);
+};
+const SB_TEKS = {
+  aktifkan: ['Pindahkan ke Supabase', 'Semua tabel disalin dari Google Sheets ke Supabase, isinya dicocokkan baris demi baris, lalu app langsung memakai Supabase. Selama proses (±10–60 detik) pengguna lain tidak bisa menyimpan data. Spreadsheet tidak dihapus dan tetap menjadi cadangan. Bila ada yang tidak cocok, app tetap memakai Sheets.', 'Pindahkan sekarang'],
+  kembali: ['Kembali ke Google Sheets', 'Seluruh data Supabase disalin ke spreadsheet (menimpa isi spreadsheet lama), diperiksa identik, lalu app memakai Google Sheets lagi. Data di Supabase tidak dihapus.', 'Kembali ke Sheets'],
+  cache: ['Kosongkan cache tabel', 'Pakai bila Anda mengubah data langsung di Table Editor Supabase. Data berikutnya dibaca langsung dari Supabase.', 'Kosongkan']
+};
+ACT['sb-pindah'] = a => { const t = SB_TEKS[a.dataset.v]; KRP.modal(t[0], `<form data-submit="sbpindah" data-v="${E(a.dataset.v)}" autocomplete="off"><p class="sm">${t[1]}</p>${konf()}<div class="k-bar"><button type="button" class="k-btn k-ghostw" data-act="mx">Batal</button><button class="k-btn k-orange">${t[2]}</button></div></form>`); };
+SUBMIT.sbpindah = async f => {
+  const b = $('button.k-orange', f), aksi = f.dataset.v; busy(b, true);
+  try {
+    const r = await rp('sb.pindah', Object.assign(form(f), { aksi })); KRP.closeModal(); toast(r.message);
+    KRP.bustCache('sbst'); KRP.bustCache('keam'); drawDb((await rp('sb.status')).data);
+    if (r.data && r.data.lap) { const L = r.data.lap; $('#sb-out').innerHTML = `<div class="k-scroll"><table class="k-table"><thead><tr><th>Data</th><th>Sheets</th><th>Supabase</th><th>Isi</th></tr></thead><tbody>${Object.keys(L).map(n => `<tr><td>${E(NAMA_T[n] || n)}</td><td class="mono">${angka(L[n].sheet)}</td><td class="mono">${angka(L[n].supabase)}</td><td>${L[n].cocok ? '<span class="k-pill k-ok">identik</span>' : '<span class="k-pill k-err">beda</span>'}</td></tr>`).join('')}</tbody></table></div>`; }
+  } catch (e) { toast(e.message.replace(/^Server sedang ramai.*$/, 'Proses masih berjalan atau koneksi terputus. Tunggu 1 menit lalu klik muat ulang (↻) untuk melihat status.'), 'err'); busy(b, false); }
+};
+/* ===== Keamanan: hanya status & versi tersamar (rahasia tetap di Script Properties) ===== */
+const ya = (b, t, f) => `<span class="k-pill ${b ? 'k-ok' : 'k-warn'}">${b ? t : f}</span>`;
+function drawSec(k) {
+  const el = $('#sys-sec'); if (!el) return;
+  el.innerHTML = card('<i class="bi bi-shield-lock"></i> Keamanan', `<ul class="k-list sec-list">
+<li><span>Kunci sesi login</span>${ya(k.sesi, 'Tersimpan', 'Belum ada')}</li>
+<li><span>Akses darurat (<code>${E(k.daruratUser)}</code>)</span>${k.daruratKunci ? '<span class="k-pill k-err">Terkunci 15 menit</span>' : ya(k.darurat && k.daruratRotasi, 'Diganti ' + KRP.fdt(k.daruratRotasi), k.darurat ? 'Masih sandi awal' : 'Belum ada')}</li>
+<li><span>Database</span><b>${k.db === 'SUPABASE' ? 'Supabase' : 'Google Sheets'}</b></li>
+<li><span>Supabase</span>${k.sbHost ? `<span class="sm"><code>${E(k.sbHost)}</code> · kunci ${k.sbKunci ? '<code>' + E(k.sbSamar) + '</code>' : 'belum diisi'}</span>` : '<span class="mut sm">Belum diatur</span>'}</li>
+<li><span>Masa berlaku sesi</span><b>${k.sesiJam} jam</b></li></ul>
+${k.darurat && !k.daruratRotasi ? alertx('warn', 'Kata sandi darurat masih sandi awal dari Log eksekusi setup. Ganti sekarang agar sandi lama tidak berlaku.', 'bi-exclamation-triangle') : ''}
+<p class="mut sm">Rahasia (kunci sesi, sandi darurat, kunci Supabase) hanya tersimpan di <b>Script Properties</b> Apps Script. Halaman ini tidak pernah menampilkan nilai lengkapnya.</p>
+<div class="k-bar" style="flex-wrap:wrap"><button class="k-btn k-navy sm" data-act="sec-darurat"><i class="bi bi-key"></i> Ganti sandi darurat</button><button class="k-btn k-ghostw sm" data-act="sec-keluar"><i class="bi bi-box-arrow-right"></i> Keluarkan semua pengguna</button></div>`);
+}
+const konf = () => field('Kata sandi Anda (konfirmasi)', '<input class="k-in" type="password" name="konfirmasi" autocomplete="current-password" required>', 1, S.me && S.me.id === 'darurat' ? 'Masuk sebagai akses darurat: isi kata sandi darurat yang sekarang.' : 'Kata sandi akun Super Admin Anda.');
+ACT['sec-darurat'] = () => KRP.modal('Ganti kata sandi darurat', `<form data-submit="secdar" autocomplete="off"><p class="sm">Akses darurat dipakai bila tidak ada Super Admin yang bisa masuk. Simpan sandi baru di tempat aman (pengelola sandi). Setelah diganti, sesi darurat lama otomatis keluar.</p>${field('Kata sandi darurat baru', '<input class="k-in" type="password" name="baru" minlength="12" autocomplete="new-password" required>', 1, 'Minimal 12 karakter, berisi huruf dan angka.')}${field('Ulangi kata sandi baru', '<input class="k-in" type="password" name="ulang" minlength="12" autocomplete="new-password" required>', 1)}${konf()}<div class="k-bar"><button type="button" class="k-btn k-ghostw" data-act="mx">Batal</button><button class="k-btn k-orange">Ganti</button></div></form>`);
+SUBMIT.secdar = async f => {
+  const d = form(f), b = $('button.k-orange', f); if (d.baru !== d.ulang) return toast('Ulangi kata sandi tidak sama.', 'err'); busy(b, true);
+  try { const r = await rp('sys.darurat', d); f.reset(); KRP.closeModal(); toast(r.message); if (r.data && r.data.keluar) return KRP.logout(false); KRP.bustCache('keam'); go('a-sistem'); } catch (e) { toast(e.message, 'err'); busy(b, false); }
+};
+ACT['sec-keluar'] = () => KRP.modal('Keluarkan semua pengguna', `<form data-submit="seckel"><p class="sm">Semua perangkat yang sedang masuk (panitia dan akun pendaftar, termasuk Anda) harus masuk ulang. Pakai bila ada HP/laptop panitia yang hilang atau sandi diduga bocor.</p>${konf()}<div class="k-bar"><button type="button" class="k-btn k-ghostw" data-act="mx">Batal</button><button class="k-btn k-orange">Keluarkan semua</button></div></form>`);
+SUBMIT.seckel = async f => { const b = $('button.k-orange', f); busy(b, true); try { const r = await rp('sys.keluarsemua', form(f)); KRP.closeModal(); toast(r.message); KRP.logout(false); } catch (e) { toast(e.message, 'err'); busy(b, false); } };
 ACT['sys-ping'] = async a => {
   busy(a, true); const t0 = performance.now();
-  try { const r = await rp('sys.ping'); const tot = Math.round(performance.now() - t0); $('#sys-v').innerHTML = `Versi frontend: ${E((window.KRP_CONFIG || {}).VERSI || '-')} · backend: <b>${E(r.data.v)}</b> · musim: ${E(r.data.musim)} · tahap: ${E(r.data.fase)}<br>Uji barusan: total <b>${tot} ms</b> (server ${r.ms || 0} ms)`; toast(r.message); }
+  try { const r = await rp('sys.ping'); const tot = Math.round(performance.now() - t0); $('#sys-v').innerHTML = `Versi frontend: ${E((window.KRP_CONFIG || {}).VERSI || '-')} · backend: <b>${E(r.data.v)}</b> · database: <b>${r.data.db === 'SUPABASE' ? 'Supabase' : 'Google Sheets'}</b> · musim: ${E(r.data.musim)} · tahap: ${E(r.data.fase)}<br>Uji barusan: total <b>${tot} ms</b> (server ${r.ms || 0} ms)`; toast(r.message); }
   catch (e) { toast(e.message, 'err'); }
   busy(a, false);
 };
@@ -1313,4 +1597,126 @@ ${x.peringatan.length ? `<div class="k-alert warn"><i class="bi bi-exclamation-t
 }
 SUBMIT.mig = f => migJalan(f, false);
 ACT['mig-run'] = a => migJalan(a.closest('form'), true);
+/* ===== Prefetch menu panitia: [kunci swr, aksi, data, ttl]. Menu berat (audit, arsip, laporan, impor, sistem) hanya saat diarahkan kursor. ===== */
+const P1 = (k, a, t) => () => [[k, a, {}, t || 15000]];
+Object.assign(KRP.PRE, {
+  'a-dash': P1('adash', 'a.dash'), 'a-fase': P1('afase', 'fase.get'), 'a-verif': P1('vlist', 'v.list'), 'a-png': P1('plist', 'p.list'), 'a-akun': P1('akun', 'sa.akun'),
+  'a-jadwal': P1('jd', 'jd.get'), 'a-dok': P1('dok', 'dok.list'), 'a-gal': P1('galadm', 'pub.galeri'),
+  'a-cfg': P1('cfg', 'cfg.get', 60000), 'a-usr': P1('usr', 'usr.list'), 'a-event': P1('evl', 'ev.list'),
+  'a-lap': P1('lap', 'lap.get'), 'a-aud': P1('aud', 'aud.list'), 'a-ars': P1('ars', 'ars.get'), 'a-impor': P1('implist', 'imp.list'), 'a-sistem': () => [['migg', 'mig.grup', {}, 60000], ['keam', 'sys.keamanan', {}, 30000], ['sbst', 'sb.status', {}, 60000]]
+});
+KRP.PRE_BERAT = { 'a-lap': 1, 'a-aud': 1, 'a-ars': 1, 'a-impor': 1, 'a-sistem': 1 };
+})();
+
+(function () {
+'use strict';
+/* ===== Nomor Lomba Peserta (Super Admin): lihat, tambah, pindah, ubah seed time, hapus nomor setiap atlet —
+   termasuk atlet yang didaftarkan sendiri oleh sekolah/klub maupun yang diinput manual oleh panitia. ===== */
+const { $, $$, E, S, V, ACT, SUBMIT, INP, G_L, TIPE_L, rp, swr, toast, busy, ph, card, alertx, empty, ask, bustCache, jn, kls, pill, form, go } = KRP;
+const main = h => { $('#main').innerHTML = h; };
+const HAL = 40; // atlet per halaman (daftar panjang tetap ringan di HP)
+const bisaStart = f => f === 'STARTLIST' || f === 'BUKU_ACARA';
+
+V['a-nomor'] = function () {
+  S.npF = S.npF || { q: '', ev: '', jk: '', g: '', x: '', n: HAL };
+  swr('peserta', 'sa.peserta', {}, d => { S.NP = d; S.NPev = {}; d.nomor.forEach(e => { S.NPev[e.id] = e; }); if ($('#np-list')) return gambarDaftar(); gambar(); }, 15000);
+};
+function gambar() {
+  const d = S.NP, f = S.npF, jks = [...new Set(d.atlet.map(a => a.jk).filter(Boolean))].sort((a, b) => (S.B.jenjang || []).findIndex(j => j.kode === a) - (S.B.jenjang || []).findIndex(j => j.kode === b));
+  main(`<div class="k-wrap pad">${ph('Nomor Lomba Peserta', 'Lihat dan ubah nomor lomba setiap atlet: tambah, pindah, ubah seed time, atau hapus. Berlaku untuk pendaftaran sekolah/klub/mandiri maupun input manual panitia.')}
+${!d.buka && d.fase === 'PENDAFTARAN' ? alertx('info', 'Pendaftaran sudah melewati batas waktu. Super Admin tetap bisa menambah dan mengubah nomor di sini.', 'bi-unlock') : d.fase !== 'PENDAFTARAN' ? alertx('info', `Tahap <b>${E(KRP.FASE_L[d.fase] || d.fase)}</b>. Pendaftar tidak bisa mengubah nomor lagi, tetapi Super Admin tetap bisa di sini.${bisaStart(d.fase) ? ' Centang <b>Susun ulang start list</b> agar perubahan langsung masuk seri & lintasan.' : ''}${d.fase === 'BUKU_ACARA' ? ' Terbitkan ulang Buku Acara setelah selesai.' : ''}`, 'bi-info-circle') : ''}
+<div class="k-filter np-f"><input class="k-in" data-in="np-q" placeholder="Cari nama, BIB, sekolah, klub, akun…" value="${E(f.q)}" aria-label="Cari atlet">
+<select class="k-in" data-chg="np-ev" aria-label="Saring per nomor"><option value="">Semua nomor</option>${d.nomor.map(e => `<option value="${e.id}"${f.ev === e.id ? ' selected' : ''}>#${e.no} ${E(e.nama)} ${E(jn(e.jk))} ${G_L[e.g] || ''}${e.a ? '' : ' (dibatalkan)'}</option>`).join('')}</select>
+<select class="k-in" data-chg="np-jk" aria-label="Saring kelompok"><option value="">Semua kelompok</option>${jks.map(k => `<option value="${E(k)}"${f.jk === k ? ' selected' : ''}>${E(jn(k))}</option>`).join('')}</select>
+<select class="k-in" data-chg="np-g" aria-label="Saring jenis kelamin"><option value="">Putra & putri</option><option value="PUTRA"${f.g === 'PUTRA' ? ' selected' : ''}>Putra</option><option value="PUTRI"${f.g === 'PUTRI' ? ' selected' : ''}>Putri</option></select>
+<select class="k-in" data-chg="np-x" aria-label="Saring khusus"><option value="">Semua atlet</option><option value="mnl"${f.x === 'mnl' ? ' selected' : ''}>Input manual panitia</option><option value="lebih"${f.x === 'lebih' ? ' selected' : ''}>Melebihi batas ${d.maks} nomor</option><option value="kurang"${f.x === 'kurang' ? ' selected' : ''}>Kurang dari ${d.min} nomor</option><option value="kosong"${f.x === 'kosong' ? ' selected' : ''}>Belum punya nomor</option></select></div>
+<div id="np-list"></div></div>`);
+  gambarDaftar();
+}
+function saring() {
+  const d = S.NP, f = S.npF, q = f.q.trim().toLowerCase();
+  return d.atlet.filter(a => (!q || [a.nama, a.bib, a.sk, a.kl, a.kont].join(' ').toLowerCase().indexOf(q) >= 0) && (!f.ev || a.ent.some(e => e.eid === f.ev)) && (!f.jk || a.jk === f.jk) && (!f.g || a.g === f.g)
+    && (!f.x || (f.x === 'mnl' ? a.mnl || a.ent.some(e => e.mnl) : f.x === 'lebih' ? a.ent.length > d.maks : f.x === 'kurang' ? a.ent.length && a.ent.length < d.min : !a.ent.length)))
+    .sort((x, y) => x.nama.localeCompare(y.nama));
+}
+const bayar = b => pill(b);
+function baris(a, e) {
+  const ev = S.NPev[e.eid] || { no: '?', nama: '(nomor terhapus)', jk: '', g: '' }, kunci = e.h ? 'disabled title="Sudah ada hasil lomba di nomor ini"' : '';
+  return `<div class="np-e${ev.a === 0 ? ' off' : ''}"><div class="np-en"><b class="mono">#${ev.no}</b> ${E(ev.nama)} <small class="mut">${E(jn(ev.jk))}${ev.jk !== a.jk ? ' · <span class="warn-t">beda kelompok</span>' : ''}</small><div class="np-tag"><span class="mono np-seed" title="Seed time">${E(e.seed || 'NT')}</span>${pill(e.v)}${bayar(e.b)}${e.sl ? '<span class="k-pill k-info">start list</span>' : ''}${e.h ? '<span class="k-pill k-gold">ada hasil</span>' : ''}${e.mnl && !a.mnl ? '<span class="k-pill k-neu">input panitia</span>' : ''}${ev.a === 0 ? '<span class="k-pill k-err">nomor dibatalkan</span>' : ''}</div></div>
+<div class="np-ea"><button class="k-btn sm k-ghostw" data-act="np-seed" data-a="${E(a.id)}" data-id="${E(e.id)}" ${kunci}><i class="bi bi-stopwatch"></i> Seed</button><button class="k-btn sm k-outline" data-act="np-pindah" data-a="${E(a.id)}" data-id="${E(e.id)}" ${kunci}><i class="bi bi-arrow-left-right"></i> Pindah</button><button class="k-btn sm k-ghostw" data-act="np-hapus" data-id="${E(e.id)}" data-n="${E(a.nama)} #${ev.no}" ${kunci} title="Hapus nomor" aria-label="Hapus nomor" style="color:var(--er)"><i class="bi bi-x-lg"></i></button></div></div><div class="np-fh" id="np-e-${E(e.id)}"></div>`;
+}
+function kartuAtlet(a) {
+  const d = S.NP, lebih = a.ent.length > d.maks, kurang = a.ent.length && a.ent.length < d.min;
+  return `<div class="k-card np-a" id="np-a-${E(a.id)}"><div class="k-card-b"><div class="np-ah"><div><b>${E(a.nama)}</b> <span class="mono mut">${E(a.bib)}</span>${a.mnl ? ' <span class="k-pill k-neu">akun input panitia</span>' : ''}${a.demo ? ' <span class="k-pill k-warn">akun uji coba</span>' : ''}<br><small class="mut">${G_L[a.g] || a.g} · Kelas ${kls(a.kelas)} · ${E(jn(a.jk))} · ${E(a.sk || a.kl || '-')}${a.kont && a.kont !== a.sk && a.kont !== a.kl ? ' · akun ' + E(a.kont) : ''}</small></div>
+<div class="np-n"><span class="${lebih ? 'err-t' : kurang ? 'warn-t' : ''}"><b>${a.ent.length}</b>/${d.maks} nomor</span><button class="k-btn sm k-orange" data-act="np-tambah" data-a="${E(a.id)}"><i class="bi bi-plus-lg"></i> Tambah nomor</button></div></div>
+<div class="np-el">${a.ent.map(e => baris(a, e)).join('') || '<p class="mut sm" style="margin:6px 0 0">Belum ada nomor musim ini.</p>'}</div><div class="np-fh" id="np-t-${E(a.id)}"></div></div></div>`;
+}
+function gambarDaftar() {
+  const el = $('#np-list'); if (!el) return; const d = S.NP, f = S.npF, L = saring(), ent = L.reduce((s, a) => s + a.ent.length, 0), ev = f.ev && S.NPev[f.ev];
+  const lebih = d.atlet.filter(a => a.ent.length > d.maks).length;
+  el.innerHTML = `<div class="np-sum"><span><b>${L.length}</b> atlet</span><span><b>${ent}</b> entri nomor</span>${lebih ? `<span class="err-t"><b>${lebih}</b> atlet melebihi batas ${d.maks} nomor</span>` : ''}${ev && bisaStart(d.fase) ? `<button class="k-btn sm k-navy" data-act="np-start" data-id="${E(ev.id)}"><i class="bi bi-list-ol"></i> Susun ulang start list #${ev.no}</button>` : ''}</div>
+${L.slice(0, f.n).map(kartuAtlet).join('') || empty('bi-search', 'Tidak ada atlet yang cocok dengan saringan.')}
+${L.length > f.n ? `<div class="k-bar" style="justify-content:center"><button class="k-btn k-ghostw" data-act="np-lagi">Tampilkan ${Math.min(HAL, L.length - f.n)} atlet lagi (${L.length - f.n} tersisa)</button></div>` : ''}`;
+}
+const segar = () => { clearTimeout(S._npT); S._npT = setTimeout(() => { S.npF.n = HAL; gambarDaftar(); }, 140); };
+INP['np-q'] = i => { S.npF.q = i.value; segar(); };
+['ev', 'jk', 'g', 'x'].forEach(k => { INP['np-' + k] = i => { S.npF[k] = i.value; S.npF.n = HAL; gambarDaftar(); }; });
+ACT['np-lagi'] = () => { S.npF.n += HAL; gambarDaftar(); };
+
+/* ── Form bersama: dipakai di halaman ini dan di Akun & Berkas → Detail ── */
+const atletOf = id => (S.NP && S.NP.atlet.find(a => a.id === id)) || ((S.akDet || {}).atlet || []).map(t => ({ id: t.id, nama: t.nama, g: t.g, jk: t.jk, ent: t.ent.map(e => ({ id: e.id, eid: e.eid, seed: e.seed || '', sl: 0 })) })).find(a => a.id === id);
+const daftarNomor = () => (S.NP ? S.NP.nomor : (S.B.events || []).map(e => ({ id: e.id, no: e.no, nama: e.nama, g: e.g, jk: e.jk, a: 1 })));
+function opsiNomor(a, semua, kecuali) {
+  const ada = {}; a.ent.forEach(e => { ada[e.eid] = 1; });
+  return daftarNomor().filter(e => e.a && e.g === a.g && (semua || e.jk === a.jk) && !ada[e.id] && e.id !== kecuali).map(e => `<option value="${e.id}">#${e.no} · ${E(e.nama)} ${E(jn(e.jk))}</option>`).join('');
+}
+const fase = () => (S.NP ? S.NP.fase : (S.B.cfg || {}).fase || 'PENDAFTARAN');
+const cekStart = (centang, ket) => bisaStart(fase()) ? `<label class="k-check1 sm"><input type="checkbox" name="susunStart"${centang ? ' checked' : ''}> Susun ulang start list nomor ini${ket ? ' <small class="mut">' + ket + '</small>' : ''}</label>` : '';
+const buka = (host, html) => { const el = $(host); if (!el) return null; if (el.innerHTML) { el.innerHTML = ''; return null; } $$('.np-fh').forEach(x => { if (x !== el) x.innerHTML = ''; }); el.innerHTML = html; const i = el.querySelector('select,input:not([type=checkbox])'); if (i) i.focus(); return el; };
+ACT['np-tambah'] = a => {
+  const t = atletOf(a.dataset.a); if (!t) return; const maks = S.NP ? S.NP.maks : Number((S.B.cfg || {}).max_individu) || 3, penuh = t.ent.length >= maks;
+  buka('#np-t-' + CSS.escape(t.id), `<form class="np-form" data-submit="np-tambah" data-a="${E(t.id)}"><b class="sm">Tambah nomor untuk ${E(t.nama)}</b>
+<div class="np-fr"><select class="k-in" name="eid" required aria-label="Nomor lomba">${opsiNomor(t, false) || '<option value="">Tidak ada nomor lain di kelompok ini</option>'}</select><input class="k-in mono" name="seed" placeholder="Seed time, mis. 00:45.12 (kosong = NT)" aria-label="Seed time" autocomplete="off"></div>
+<div class="np-ck"><label class="k-check1 sm"><input type="checkbox" name="semua" data-chg="np-semua" data-a="${E(t.id)}"> Tampilkan kelompok lain (izinkan beda kelompok)</label><label class="k-check1 sm"><input type="checkbox" name="lunas" checked> Sudah lunas / dibebaskan</label><label class="k-check1 sm"><input type="checkbox" name="biaya" checked> Hitung biaya nomor ini di laporan</label>
+${penuh ? `<label class="k-check1 sm warn-t"><input type="checkbox" name="lewati"> Abaikan batas ${maks} nomor & kuota (atlet sudah ${t.ent.length} nomor)</label>` : '<label class="k-check1 sm"><input type="checkbox" name="lewati"> Abaikan kuota nomor bila penuh</label>'}${cekStart(true)}</div>
+<div class="k-bar"><button type="button" class="k-btn sm k-ghostw" data-act="np-tutup">Batal</button><button class="k-btn sm k-orange"><i class="bi bi-plus-lg"></i> Tambahkan</button></div></form>`);
+};
+INP['np-semua'] = c => { const f = c.closest('form'), s = f && f.querySelector('select[name=eid]'), t = atletOf(c.dataset.a); if (s && t) s.innerHTML = opsiNomor(t, c.checked, f.dataset.kec || '') || '<option value="">Tidak ada nomor</option>'; };
+ACT['np-tutup'] = a => { const h = a.closest('.np-fh'); if (h) h.innerHTML = ''; };
+const selesai = async (r, b) => {
+  toast(r.message, r.data && r.data.start && r.data.start.ok === false ? 'warn' : 'ok'); bustCache('peserta'); bustCache('adash'); bustCache('jd'); bustCache('akun');
+  if (S.akOpen && $('#modal .k-mb') && !$('#np-list')) { ACT['akun-open']({ dataset: { id: S.akOpen } }); return; }
+  try { const d = (await rp('sa.peserta')).data; S.NP = d; S.NPev = {}; d.nomor.forEach(e => { S.NPev[e.id] = e; }); gambarDaftar(); } catch (e) { busy(b, false); }
+};
+SUBMIT['np-tambah'] = async f => {
+  const d = form(f), b = $('button.k-orange', f); if (!d.eid) return toast('Pilih nomor lomba.', 'err'); busy(b, true);
+  try { await selesai(await rp('sa.entri.tambah', { aid: f.dataset.a, eid: d.eid, seed: d.seed || '', paksa: !!d.semua, lunas: !!d.lunas, biaya: !!d.biaya, lewati: !!d.lewati, susunStart: !!d.susunStart }), b); }
+  catch (e) { toast(e.message, 'err'); busy(b, false); if (/Abaikan batas/.test(e.message)) { const c = f.querySelector('[name=lewati]'); if (c) c.closest('label').classList.add('warn-t'); } }
+};
+ACT['np-pindah'] = a => {
+  const t = atletOf(a.dataset.a), e = t && t.ent.find(x => x.id === a.dataset.id); if (!e) return; const ev = (S.NPev || {})[e.eid] || {};
+  buka('#np-e-' + CSS.escape(e.id), `<form class="np-form" data-submit="np-pindah" data-id="${E(e.id)}" data-kec="${E(e.eid)}"><span class="sm mut">Pindahkan dari <b>#${ev.no || '?'} ${E(ev.nama || '')}</b> ke:</span>
+<div class="np-fr"><select class="k-in" name="eid" required aria-label="Nomor tujuan">${opsiNomor(t, false, e.eid) || '<option value="">Tidak ada nomor lain di kelompok ini</option>'}</select><input class="k-in mono" name="seed" value="${E(e.seed || '')}" placeholder="Seed time (kosong = NT)" aria-label="Seed time di nomor tujuan" autocomplete="off"></div>
+<div class="np-ck"><label class="k-check1 sm"><input type="checkbox" name="semua" data-chg="np-semua" data-a="${E(t.id)}"> Izinkan beda kelompok</label>${cekStart(true, '(nomor tujuan)')}</div>
+<div class="k-bar"><button type="button" class="k-btn sm k-ghostw" data-act="np-tutup">Batal</button><button class="k-btn sm k-orange">Pindahkan</button></div></form>`);
+};
+SUBMIT['np-pindah'] = async f => {
+  const d = form(f), b = $('button.k-orange', f); if (!d.eid) return toast('Pilih nomor tujuan.', 'err'); busy(b, true);
+  try { await selesai(await rp('sa.entri.ubah', { id: f.dataset.id, eid: d.eid, seed: d.seed || '', paksa: !!d.semua, susunStart: !!d.susunStart }), b); } catch (e) { toast(e.message, 'err'); busy(b, false); }
+};
+ACT['np-seed'] = a => {
+  const t = atletOf(a.dataset.a), e = t && t.ent.find(x => x.id === a.dataset.id); if (!e) return;
+  buka('#np-e-' + CSS.escape(e.id), `<form class="np-form" data-submit="np-seed" data-id="${E(e.id)}"><div class="np-fr"><input class="k-in mono" name="seed" value="${E(e.seed || '')}" placeholder="Seed time, mis. 00:45.12 (kosong = NT)" aria-label="Seed time baru" autocomplete="off"></div>${e.sl ? `<div class="np-ck">${cekStart(true, '(seri & lintasan mengikuti seed baru)')}</div>` : ''}
+<div class="k-bar"><button type="button" class="k-btn sm k-ghostw" data-act="np-tutup">Batal</button><button class="k-btn sm k-orange">Simpan seed time</button></div></form>`);
+};
+SUBMIT['np-seed'] = async f => { const d = form(f), b = $('button.k-orange', f); busy(b, true); try { await selesai(await rp('sa.entri.ubah', { id: f.dataset.id, seed: d.seed || '', susunStart: !!d.susunStart }), b); } catch (e) { toast(e.message, 'err'); busy(b, false); } };
+ACT['np-hapus'] = async a => {
+  if (!(await ask(`Hapus nomor <b>${E(a.dataset.n)}</b> dari pendaftaran atlet? Biaya nomor ini tidak dihitung lagi dan atlet dikeluarkan dari start list nomor tersebut.`, 'Hapus nomor', true))) return;
+  try { await selesai(await rp('sa.entri.hapus', { id: a.dataset.id })); } catch (e) { toast(e.message, 'err'); }
+};
+ACT['np-start'] = async a => {
+  const ev = S.NPev[a.dataset.id]; if (!(await ask(`Susun ulang start list <b>#${ev.no} ${E(ev.nama)}</b>? Seri & lintasan dihitung ulang dari seed time peserta yang sah dan lunas.${S.NP.fase === 'BUKU_ACARA' ? ' Terbitkan ulang Buku Acara setelahnya.' : ''}`, 'Susun ulang'))) return;
+  busy(a, true); try { const r = await rp('s.run', { id: a.dataset.id }); toast(r.message); bustCache('peserta'); go('a-nomor'); } catch (e) { toast(e.message, 'err'); busy(a, false); }
+};
+KRP.PRE['a-nomor'] = () => [['peserta', 'sa.peserta', {}, 15000]];
 })();
