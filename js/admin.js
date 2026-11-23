@@ -1,4 +1,4 @@
-/* KRP Pro v2.1.0 — modul panitia (dimuat saat dibutuhkan). Dibuat otomatis oleh tools/build.js dari folder src/. Jangan diedit langsung. */
+/* KRP Pro v2.1.2 — modul panitia (dimuat saat dibutuhkan). Dibuat otomatis oleh tools/build.js dari folder src/. Jangan diedit langsung. */
 (function () {
 'use strict';
 const { $, $$, E, S, V, ACT, SUBMIT, INP, G_L, TIPE_L, FASE, FASE_L, pill, rupiah, fdt, jn, kls, evTitle, thumb, initials, rp, swr, bustCache, toast, modal, closeModal, ask, busy, ph, card, empty, kpi, alertx, field, inp, sel, form, viewFile, go, chart } = KRP;
@@ -1616,6 +1616,7 @@ const { $, $$, E, S, V, ACT, SUBMIT, INP, G_L, TIPE_L, rp, swr, toast, busy, ph,
 const main = h => { $('#main').innerHTML = h; };
 const HAL = 40; // atlet per halaman (daftar panjang tetap ringan di HP)
 const bisaStart = f => f === 'STARTLIST' || f === 'BUKU_ACARA';
+const adaStart = f => bisaStart(f) || f === 'PELAKSANAAN'; // tahap yang sudah punya start list (sisip lintasan kosong masih boleh saat pelaksanaan)
 
 V['a-nomor'] = function () {
   S.npF = S.npF || { q: '', ev: '', jk: '', g: '', x: '', n: HAL };
@@ -1623,8 +1624,8 @@ V['a-nomor'] = function () {
 };
 function gambar() {
   const d = S.NP, f = S.npF, jks = [...new Set(d.atlet.map(a => a.jk).filter(Boolean))].sort((a, b) => (S.B.jenjang || []).findIndex(j => j.kode === a) - (S.B.jenjang || []).findIndex(j => j.kode === b));
-  main(`<div class="k-wrap pad">${ph('Nomor Lomba Peserta', 'Lihat dan ubah nomor lomba setiap atlet: tambah, pindah, ubah seed time, atau hapus. Berlaku untuk pendaftaran sekolah/klub/mandiri maupun input manual panitia.')}
-${!d.buka && d.fase === 'PENDAFTARAN' ? alertx('info', 'Pendaftaran sudah melewati batas waktu. Super Admin tetap bisa menambah dan mengubah nomor di sini.', 'bi-unlock') : d.fase !== 'PENDAFTARAN' ? alertx('info', `Tahap <b>${E(KRP.FASE_L[d.fase] || d.fase)}</b>. Pendaftar tidak bisa mengubah nomor lagi, tetapi Super Admin tetap bisa di sini.${bisaStart(d.fase) ? ' Centang <b>Susun ulang start list</b> agar perubahan langsung masuk seri & lintasan.' : ''}${d.fase === 'BUKU_ACARA' ? ' Terbitkan ulang Buku Acara setelah selesai.' : ''}`, 'bi-info-circle') : ''}
+  main(`<div class="k-wrap pad">${ph('Nomor Lomba Peserta', 'Lihat dan ubah data atlet serta nomor lombanya: ubah nama & biodata, tambah, pindah, ubah seed time, atau hapus nomor — juga setelah start list terbit. Berlaku untuk pendaftaran sekolah/klub/mandiri maupun input manual panitia.')}
+${!d.buka && d.fase === 'PENDAFTARAN' ? alertx('info', 'Pendaftaran sudah melewati batas waktu. Super Admin tetap bisa menambah dan mengubah nomor di sini.', 'bi-unlock') : d.fase !== 'PENDAFTARAN' ? alertx('info', `Tahap <b>${E(KRP.FASE_L[d.fase] || d.fase)}</b>. Pendaftar tidak bisa mengubah data lagi; revisi dari peserta dilakukan Super Admin di sini: <b>Ubah data</b> (nama, kelas, sekolah, dll.), <b>Seed</b>, <b>Pindah</b>, atau <b>Tambah nomor</b>.${adaStart(d.fase) ? ' Start list ikut diperbarui: seed baru langsung tampil tanpa menggeser lintasan, dan nomor baru bisa disisipkan ke lintasan kosong.' : ''}${d.fase !== 'STARTLIST' && adaStart(d.fase) ? ' Setelah selesai, buat ulang Buku Acara/Start List di <b>Dokumen & Logo</b>.' : ''}`, 'bi-info-circle') : ''}
 <div class="k-filter np-f"><input class="k-in" data-in="np-q" placeholder="Cari nama, BIB, sekolah, klub, akun…" value="${E(f.q)}" aria-label="Cari atlet">
 <select class="k-in" data-chg="np-ev" aria-label="Saring per nomor"><option value="">Semua nomor</option>${d.nomor.map(e => `<option value="${e.id}"${f.ev === e.id ? ' selected' : ''}>#${e.no} ${E(e.nama)} ${E(jn(e.jk))} ${G_L[e.g] || ''}${e.a ? '' : ' (dibatalkan)'}</option>`).join('')}</select>
 <select class="k-in" data-chg="np-jk" aria-label="Saring kelompok"><option value="">Semua kelompok</option>${jks.map(k => `<option value="${E(k)}"${f.jk === k ? ' selected' : ''}>${E(jn(k))}</option>`).join('')}</select>
@@ -1642,14 +1643,14 @@ function saring() {
 const bayar = b => pill(b);
 function baris(a, e) {
   const ev = S.NPev[e.eid] || { no: '?', nama: '(nomor terhapus)', jk: '', g: '' }, kunci = e.h ? 'disabled title="Sudah ada hasil lomba di nomor ini"' : '';
-  return `<div class="np-e${ev.a === 0 ? ' off' : ''}"><div class="np-en"><b class="mono">#${ev.no}</b> ${E(ev.nama)} <small class="mut">${E(jn(ev.jk))}${ev.jk !== a.jk ? ' · <span class="warn-t">beda kelompok</span>' : ''}</small><div class="np-tag"><span class="mono np-seed" title="Seed time">${E(e.seed || 'NT')}</span>${pill(e.v)}${bayar(e.b)}${e.sl ? '<span class="k-pill k-info">start list</span>' : ''}${e.h ? '<span class="k-pill k-gold">ada hasil</span>' : ''}${e.mnl && !a.mnl ? '<span class="k-pill k-neu">input panitia</span>' : ''}${ev.a === 0 ? '<span class="k-pill k-err">nomor dibatalkan</span>' : ''}</div></div>
+  return `<div class="np-e${ev.a === 0 ? ' off' : ''}"><div class="np-en"><b class="mono">#${ev.no}</b> ${E(ev.nama)} <small class="mut">${E(jn(ev.jk))}${ev.jk !== a.jk ? ' · <span class="warn-t">beda kelompok</span>' : ''}</small><div class="np-tag"><span class="mono np-seed" title="Seed time">${E(e.seed || 'NT')}</span>${pill(e.v)}${bayar(e.b)}${e.sl ? `<span class="k-pill k-info" title="Posisi di start list">seri ${e.sl[0]} · lint. ${e.sl[1]}</span>` : ''}${e.h ? '<span class="k-pill k-gold">ada hasil</span>' : ''}${e.mnl && !a.mnl ? '<span class="k-pill k-neu">input panitia</span>' : ''}${ev.a === 0 ? '<span class="k-pill k-err">nomor dibatalkan</span>' : ''}</div></div>
 <div class="np-ea"><button class="k-btn sm k-ghostw" data-act="np-seed" data-a="${E(a.id)}" data-id="${E(e.id)}" ${kunci}><i class="bi bi-stopwatch"></i> Seed</button><button class="k-btn sm k-outline" data-act="np-pindah" data-a="${E(a.id)}" data-id="${E(e.id)}" ${kunci}><i class="bi bi-arrow-left-right"></i> Pindah</button><button class="k-btn sm k-ghostw" data-act="np-hapus" data-id="${E(e.id)}" data-n="${E(a.nama)} #${ev.no}" ${kunci} title="Hapus nomor" aria-label="Hapus nomor" style="color:var(--er)"><i class="bi bi-x-lg"></i></button></div></div><div class="np-fh" id="np-e-${E(e.id)}"></div>`;
 }
 function kartuAtlet(a) {
   const d = S.NP, lebih = a.ent.length > d.maks, kurang = a.ent.length && a.ent.length < d.min;
   return `<div class="k-card np-a" id="np-a-${E(a.id)}"><div class="k-card-b"><div class="np-ah"><div><b>${E(a.nama)}</b> <span class="mono mut">${E(a.bib)}</span>${a.mnl ? ' <span class="k-pill k-neu">akun input panitia</span>' : ''}${a.demo ? ' <span class="k-pill k-warn">akun uji coba</span>' : ''}<br><small class="mut">${G_L[a.g] || a.g} · Kelas ${kls(a.kelas)} · ${E(jn(a.jk))} · ${E(a.sk || a.kl || '-')}${a.kont && a.kont !== a.sk && a.kont !== a.kl ? ' · akun ' + E(a.kont) : ''}</small></div>
-<div class="np-n"><span class="${lebih ? 'err-t' : kurang ? 'warn-t' : ''}"><b>${a.ent.length}</b>/${d.maks} nomor</span><button class="k-btn sm k-orange" data-act="np-tambah" data-a="${E(a.id)}"><i class="bi bi-plus-lg"></i> Tambah nomor</button></div></div>
-<div class="np-el">${a.ent.map(e => baris(a, e)).join('') || '<p class="mut sm" style="margin:6px 0 0">Belum ada nomor musim ini.</p>'}</div><div class="np-fh" id="np-t-${E(a.id)}"></div></div></div>`;
+<div class="np-n"><span class="${lebih ? 'err-t' : kurang ? 'warn-t' : ''}"><b>${a.ent.length}</b>/${d.maks} nomor</span><button class="k-btn sm k-outline" data-act="np-data" data-a="${E(a.id)}"><i class="bi bi-pencil"></i> Ubah data</button><button class="k-btn sm k-orange" data-act="np-tambah" data-a="${E(a.id)}"><i class="bi bi-plus-lg"></i> Tambah nomor</button></div></div>
+<div class="np-fh" id="np-d-${E(a.id)}"></div><div class="np-el">${a.ent.map(e => baris(a, e)).join('') || '<p class="mut sm" style="margin:6px 0 0">Belum ada nomor musim ini.</p>'}</div><div class="np-fh" id="np-t-${E(a.id)}"></div></div></div>`;
 }
 function gambarDaftar() {
   const el = $('#np-list'); if (!el) return; const d = S.NP, f = S.npF, L = saring(), ent = L.reduce((s, a) => s + a.ent.length, 0), ev = f.ev && S.NPev[f.ev];
@@ -1671,14 +1672,16 @@ function opsiNomor(a, semua, kecuali) {
   return daftarNomor().filter(e => e.a && e.g === a.g && (semua || e.jk === a.jk) && !ada[e.id] && e.id !== kecuali).map(e => `<option value="${e.id}">#${e.no} · ${E(e.nama)} ${E(jn(e.jk))}</option>`).join('');
 }
 const fase = () => (S.NP ? S.NP.fase : (S.B.cfg || {}).fase || 'PENDAFTARAN');
-const cekStart = (centang, ket) => bisaStart(fase()) ? `<label class="k-check1 sm"><input type="checkbox" name="susunStart"${centang ? ' checked' : ''}> Susun ulang start list nomor ini${ket ? ' <small class="mut">' + ket + '</small>' : ''}</label>` : '';
+// Cara masuk start list setelah start list tersusun: sisip ke lintasan kosong (bawaan, atlet lain tidak berpindah) atau susun ulang semua seri.
+const pilihStart = ket => adaStart(fase()) ? `<label class="k-f np-st"><span>Masuk start list${ket ? ' ' + ket : ''}</span><select class="k-in" name="start"><option value="sisip">Sisipkan ke lintasan kosong — atlet lain tidak berpindah</option>${bisaStart(fase()) ? '<option value="susun">Susun ulang semua seri nomor ini (lintasan atlet lain bisa berubah)</option>' : ''}<option value="">Jangan dulu</option></select></label>` : '';
+const pilihSeed = () => adaStart(fase()) ? `<label class="k-f np-st"><span>Di start list</span><select class="k-in" name="start"><option value="tetap">Perbarui waktunya saja — seri & lintasan tetap</option>${bisaStart(fase()) ? '<option value="susun">Susun ulang seri & lintasan nomor ini mengikuti seed baru</option>' : ''}</select></label>` : '';
 const buka = (host, html) => { const el = $(host); if (!el) return null; if (el.innerHTML) { el.innerHTML = ''; return null; } $$('.np-fh').forEach(x => { if (x !== el) x.innerHTML = ''; }); el.innerHTML = html; const i = el.querySelector('select,input:not([type=checkbox])'); if (i) i.focus(); return el; };
 ACT['np-tambah'] = a => {
   const t = atletOf(a.dataset.a); if (!t) return; const maks = S.NP ? S.NP.maks : Number((S.B.cfg || {}).max_individu) || 3, penuh = t.ent.length >= maks;
   buka('#np-t-' + CSS.escape(t.id), `<form class="np-form" data-submit="np-tambah" data-a="${E(t.id)}"><b class="sm">Tambah nomor untuk ${E(t.nama)}</b>
 <div class="np-fr"><select class="k-in" name="eid" required aria-label="Nomor lomba">${opsiNomor(t, false) || '<option value="">Tidak ada nomor lain di kelompok ini</option>'}</select><input class="k-in mono" name="seed" placeholder="Seed time, mis. 00:45.12 (kosong = NT)" aria-label="Seed time" autocomplete="off"></div>
 <div class="np-ck"><label class="k-check1 sm"><input type="checkbox" name="semua" data-chg="np-semua" data-a="${E(t.id)}"> Tampilkan kelompok lain (izinkan beda kelompok)</label><label class="k-check1 sm"><input type="checkbox" name="lunas" checked> Sudah lunas / dibebaskan</label><label class="k-check1 sm"><input type="checkbox" name="biaya" checked> Hitung biaya nomor ini di laporan</label>
-${penuh ? `<label class="k-check1 sm warn-t"><input type="checkbox" name="lewati"> Abaikan batas ${maks} nomor & kuota (atlet sudah ${t.ent.length} nomor)</label>` : '<label class="k-check1 sm"><input type="checkbox" name="lewati"> Abaikan kuota nomor bila penuh</label>'}${cekStart(true)}</div>
+${penuh ? `<label class="k-check1 sm warn-t"><input type="checkbox" name="lewati"> Abaikan batas ${maks} nomor & kuota (atlet sudah ${t.ent.length} nomor)</label>` : '<label class="k-check1 sm"><input type="checkbox" name="lewati"> Abaikan kuota nomor bila penuh</label>'}</div>${pilihStart()}
 <div class="k-bar"><button type="button" class="k-btn sm k-ghostw" data-act="np-tutup">Batal</button><button class="k-btn sm k-orange"><i class="bi bi-plus-lg"></i> Tambahkan</button></div></form>`);
 };
 INP['np-semua'] = c => { const f = c.closest('form'), s = f && f.querySelector('select[name=eid]'), t = atletOf(c.dataset.a); if (s && t) s.innerHTML = opsiNomor(t, c.checked, f.dataset.kec || '') || '<option value="">Tidak ada nomor</option>'; };
@@ -1690,26 +1693,47 @@ const selesai = async (r, b) => {
 };
 SUBMIT['np-tambah'] = async f => {
   const d = form(f), b = $('button.k-orange', f); if (!d.eid) return toast('Pilih nomor lomba.', 'err'); busy(b, true);
-  try { await selesai(await rp('sa.entri.tambah', { aid: f.dataset.a, eid: d.eid, seed: d.seed || '', paksa: !!d.semua, lunas: !!d.lunas, biaya: !!d.biaya, lewati: !!d.lewati, susunStart: !!d.susunStart }), b); }
+  try { await selesai(await rp('sa.entri.tambah', { aid: f.dataset.a, eid: d.eid, seed: d.seed || '', paksa: !!d.semua, lunas: !!d.lunas, biaya: !!d.biaya, lewati: !!d.lewati, start: d.start || '' }), b); }
   catch (e) { toast(e.message, 'err'); busy(b, false); if (/Abaikan batas/.test(e.message)) { const c = f.querySelector('[name=lewati]'); if (c) c.closest('label').classList.add('warn-t'); } }
 };
 ACT['np-pindah'] = a => {
   const t = atletOf(a.dataset.a), e = t && t.ent.find(x => x.id === a.dataset.id); if (!e) return; const ev = (S.NPev || {})[e.eid] || {};
   buka('#np-e-' + CSS.escape(e.id), `<form class="np-form" data-submit="np-pindah" data-id="${E(e.id)}" data-kec="${E(e.eid)}"><span class="sm mut">Pindahkan dari <b>#${ev.no || '?'} ${E(ev.nama || '')}</b> ke:</span>
 <div class="np-fr"><select class="k-in" name="eid" required aria-label="Nomor tujuan">${opsiNomor(t, false, e.eid) || '<option value="">Tidak ada nomor lain di kelompok ini</option>'}</select><input class="k-in mono" name="seed" value="${E(e.seed || '')}" placeholder="Seed time (kosong = NT)" aria-label="Seed time di nomor tujuan" autocomplete="off"></div>
-<div class="np-ck"><label class="k-check1 sm"><input type="checkbox" name="semua" data-chg="np-semua" data-a="${E(t.id)}"> Izinkan beda kelompok</label>${cekStart(true, '(nomor tujuan)')}</div>
+<div class="np-ck"><label class="k-check1 sm"><input type="checkbox" name="semua" data-chg="np-semua" data-a="${E(t.id)}"> Izinkan beda kelompok</label></div>${pilihStart('(nomor tujuan)')}
 <div class="k-bar"><button type="button" class="k-btn sm k-ghostw" data-act="np-tutup">Batal</button><button class="k-btn sm k-orange">Pindahkan</button></div></form>`);
 };
 SUBMIT['np-pindah'] = async f => {
   const d = form(f), b = $('button.k-orange', f); if (!d.eid) return toast('Pilih nomor tujuan.', 'err'); busy(b, true);
-  try { await selesai(await rp('sa.entri.ubah', { id: f.dataset.id, eid: d.eid, seed: d.seed || '', paksa: !!d.semua, susunStart: !!d.susunStart }), b); } catch (e) { toast(e.message, 'err'); busy(b, false); }
+  try { await selesai(await rp('sa.entri.ubah', { id: f.dataset.id, eid: d.eid, seed: d.seed || '', paksa: !!d.semua, start: d.start || '' }), b); } catch (e) { toast(e.message, 'err'); busy(b, false); }
 };
 ACT['np-seed'] = a => {
   const t = atletOf(a.dataset.a), e = t && t.ent.find(x => x.id === a.dataset.id); if (!e) return;
-  buka('#np-e-' + CSS.escape(e.id), `<form class="np-form" data-submit="np-seed" data-id="${E(e.id)}"><div class="np-fr"><input class="k-in mono" name="seed" value="${E(e.seed || '')}" placeholder="Seed time, mis. 00:45.12 (kosong = NT)" aria-label="Seed time baru" autocomplete="off"></div>${e.sl ? `<div class="np-ck">${cekStart(true, '(seri & lintasan mengikuti seed baru)')}</div>` : ''}
+  buka('#np-e-' + CSS.escape(e.id), `<form class="np-form" data-submit="np-seed" data-id="${E(e.id)}"><div class="np-fr"><input class="k-in mono" name="seed" value="${E(e.seed || '')}" placeholder="Seed time, mis. 00:45.12 (kosong = NT)" aria-label="Seed time baru" autocomplete="off"></div>${e.sl ? pilihSeed() : ''}
 <div class="k-bar"><button type="button" class="k-btn sm k-ghostw" data-act="np-tutup">Batal</button><button class="k-btn sm k-orange">Simpan seed time</button></div></form>`);
 };
-SUBMIT['np-seed'] = async f => { const d = form(f), b = $('button.k-orange', f); busy(b, true); try { await selesai(await rp('sa.entri.ubah', { id: f.dataset.id, seed: d.seed || '', susunStart: !!d.susunStart }), b); } catch (e) { toast(e.message, 'err'); busy(b, false); } };
+SUBMIT['np-seed'] = async f => { const d = form(f), b = $('button.k-orange', f); busy(b, true); try { await selesai(await rp('sa.entri.ubah', { id: f.dataset.id, seed: d.seed || '', start: d.start || 'tetap' }), b); } catch (e) { toast(e.message, 'err'); busy(b, false); } };
+ACT['np-data'] = a => {
+  const t = (S.NP && S.NP.atlet.find(x => x.id === a.dataset.a)); if (!t) return;
+  const inp = (n, v, l, at) => `<label class="k-f"><span>${l}</span><input class="k-in" name="${n}" value="${E(v == null ? '' : v)}" ${at || ''}></label>`;
+  buka('#np-d-' + CSS.escape(t.id), `<form class="np-form" data-submit="np-data" data-a="${E(t.id)}"><b class="sm">Ubah data ${E(t.nama)}</b>
+<div class="np-dg">${inp('nama', t.nama, 'Nama lengkap', 'required minlength="3" autocomplete="off"')}
+<label class="k-f"><span>Jenis kelamin</span><select class="k-in" name="g"><option value="PUTRA"${t.g === 'PUTRA' ? ' selected' : ''}>Putra</option><option value="PUTRI"${t.g === 'PUTRI' ? ' selected' : ''}>Putri</option></select></label>
+<label class="k-f"><span>Kelas</span><select class="k-in" name="kelas">${Array.from({ length: 13 }, (_, i) => `<option value="${i}"${Number(t.kelas) === i ? ' selected' : ''}>${i === 0 ? 'TK' : 'Kelas ' + i}</option>`).join('')}</select></label>
+${inp('tgl', t.tgl, 'Tanggal lahir', 'type="date"')}${inp('tmp', t.tmp, 'Tempat lahir')}${inp('nisn', t.nisn, 'NISN', 'inputmode="numeric" maxlength="10" autocomplete="off"')}
+${inp('sk', t.sk, 'Sekolah')}${inp('kl', t.kl, 'Klub')}${inp('kota', t.kota, 'Kab/Kota')}${inp('prov', t.prov, 'Provinsi')}${inp('hp', t.hp, 'No. HP', 'inputmode="tel"')}</div>
+<p class="sm mut" style="margin:0">Hanya isian yang berubah yang disimpan. Start list, hasil, dan ID card langsung memakai data baru; nomor lomba tidak berubah.</p>
+<div class="k-bar"><button type="button" class="k-btn sm k-ghostw" data-act="np-tutup">Batal</button><button class="k-btn sm k-orange"><i class="bi bi-check2"></i> Simpan data</button></div></form>`);
+};
+SUBMIT['np-data'] = async f => {
+  const t = S.NP.atlet.find(x => x.id === f.dataset.a), d = form(f), b = $('button.k-orange', f), kunci = { nama: 'nama', g: 'g', kelas: 'kelas', tgl: 'tgl', tmp: 'tmp', nisn: 'nisn', sk: 'sk', kl: 'kl', kota: 'kota', prov: 'prov', hp: 'hp' }, data = {};
+  Object.keys(kunci).forEach(k => { const v = String(d[k] == null ? '' : d[k]).trim(), lama = String(t[kunci[k]] == null ? '' : t[kunci[k]]); if (v !== lama) data[k] = v; });
+  if (!Object.keys(data).length) return toast('Tidak ada perubahan.', 'warn');
+  if (data.g && t.ent.length && !(await ask(`Ubah jenis kelamin ${E(t.nama)}? Nomor lomba ${t.g === 'PUTRA' ? 'putra' : 'putri'} yang sudah terdaftar harus dipindah dulu.`, 'Lanjutkan'))) return;
+  busy(b, true);
+  try { const r = await rp('sa.atlet.ubah', { id: t.id, data }); await selesai(r, b); if (r.data && r.data.bedaKel && r.data.bedaKel.length) toast('Nomor ' + r.data.bedaKel.join(', ') + ' kini beda kelompok dengan kelas baru.', 'warn'); }
+  catch (e) { toast(e.message, 'err'); busy(b, false); }
+};
 ACT['np-hapus'] = async a => {
   if (!(await ask(`Hapus nomor <b>${E(a.dataset.n)}</b> dari pendaftaran atlet? Biaya nomor ini tidak dihitung lagi dan atlet dikeluarkan dari start list nomor tersebut.`, 'Hapus nomor', true))) return;
   try { await selesai(await rp('sa.entri.hapus', { id: a.dataset.id })); } catch (e) { toast(e.message, 'err'); }
