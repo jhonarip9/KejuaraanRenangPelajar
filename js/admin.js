@@ -1,4 +1,4 @@
-/* KRP Pro v2.2.0 — modul panitia (dimuat saat dibutuhkan). Dibuat otomatis oleh tools/build.js dari folder src/. Jangan diedit langsung. */
+/* KRP Pro v2.3.0 — modul panitia (dimuat saat dibutuhkan). Dibuat otomatis oleh tools/build.js dari folder src/. Jangan diedit langsung. */
 (function () {
 'use strict';
 const { $, $$, E, S, V, ACT, SUBMIT, INP, G_L, TIPE_L, FASE, FASE_L, pill, rupiah, fdt, jn, kls, evTitle, thumb, initials, rp, swr, bustCache, toast, modal, closeModal, ask, busy, ph, card, empty, kpi, alertx, field, inp, sel, form, viewFile, go, chart } = KRP;
@@ -1755,4 +1755,99 @@ ACT['np-start'] = async a => {
   busy(a, true); try { const r = await rp('s.run', { id: a.dataset.id }); toast(r.message); bustCache('peserta'); go('a-nomor'); } catch (e) { toast(e.message, 'err'); busy(a, false); }
 };
 KRP.PRE['a-nomor'] = () => [['peserta', 'sa.peserta', {}, 15000]];
+})();
+
+(function () {
+'use strict';
+/* ===== Best Swimmer (Super Admin): calon 3 besar tiap kelompok putra & putri, kirim/cabut gelar, rekor nasional acuan.
+   Urutan: medali (emas dulu seperti klasemen, atau total medali), bila sama → poin rekor nasional = Σ 1000 × (rekor ÷ waktu)³. ===== */
+const { $, E, S, V, ACT, SUBMIT, INP, rp, swr, toast, busy, ph, card, alertx, empty, ask, bustCache, jn, form, go, modal, closeModal, field, fdt, loadScript } = KRP;
+const main = h => { $('#main').innerHTML = h; };
+const GL = g => g === 'PUTRI' ? 'Putri' : 'Putra';
+const NR_URL = 'https://www.worldaquatics.com/swimming/records?recordCode=NR&eventTypeId=&region=&countryId=0e3db4d6-e413-424d-8eef-5c645699afe2&gender=M&pool=SCM';
+const md = (k) => `<span class="bs-md"><span class="md g" title="Emas">${k.e}</span><span class="md s" title="Perak">${k.p}</span><span class="md b" title="Perunggu">${k.b}</span></span>`;
+const medali = m => m === 'EMAS' ? '<span class="md g">E</span>' : m === 'PERAK' ? '<span class="md s">P</span>' : m === 'PERUNGGU' ? '<span class="md b">B</span>' : '–';
+const rincian = k => `<div class="k-scroll"><table class="k-table bs-rinci"><thead><tr><th>No</th><th>Nomor</th><th>Waktu</th><th>Rank</th><th>Rekor nasional acuan</th><th>Poin</th></tr></thead><tbody>${k.nomor.map(n => `<tr><td class="mono">#${n.no}</td><td>${E(n.nama)}</td><td class="mono">${E(n.waktu)}</td><td>${n.rank || '–'} ${medali(n.medal)}</td><td>${n.acuan ? `<b class="mono">${E(n.acuan)}</b> <small class="mut">${E(n.ket)}</small>` : `<small class="warn-t">${E(n.ket)}</small>`}</td><td class="mono"><b>${n.poin}</b></td></tr>`).join('')}</tbody><tfoot><tr><td colspan="5" style="text-align:right">Total poin</td><td class="mono"><b>${k.poin}</b></td></tr></tfoot></table></div>`;
+const baris = (G, k, i) => `<div class="bs-row${i === 0 ? ' top' : ''}"><span class="rk${k.rank === 1 ? ' g' : k.rank === 2 ? ' s' : k.rank === 3 ? ' b' : ''}">${k.rank}</span>
+<div class="bs-who"><b>${E(k.nama)}</b><small class="mut">${E(k.kont || '')}</small></div>${md(k)}
+<div class="bs-st"><span><small class="mut">Medali</small><b class="mono">${k.e + k.p + k.b}</b></span><span><small class="mut">Poin rekor</small><b class="mono">${k.poin}</b></span></div>
+<div class="bs-act"><button class="k-btn ${G.gelar && G.gelar.aid === k.aid ? 'k-ghostw' : i === 0 ? 'k-orange' : 'k-outline'} sm" data-act="bs-kirim" data-jk="${E(G.jk)}" data-g="${G.g}" data-aid="${E(k.aid)}"><i class="bi bi-trophy"></i> ${G.gelar && G.gelar.aid === k.aid ? 'Kirim ulang' : 'Kirim gelar'}</button></div>
+<details class="bs-det"><summary>Rincian ${k.nomor.length} nomor</summary>${rincian(k)}</details></div>`;
+function grupCard(G) {
+  const top = G.kandidat.slice(0, 3), sisa = G.kandidat.slice(3);
+  const kanan = G.gelar ? `<span class="k-pill k-ok"><i class="bi bi-trophy-fill"></i> Terkirim</span>` : `<span class="k-pill k-neu">${G.n} perenang</span>`;
+  return card(`${E(jn(G.jk))} · ${GL(G.g)}`, `${G.gelar ? alertx('ok', `Gelar Best Swimmer dikirim ke <b>${E(G.gelar.nama)}</b> · ${E(G.gelar.event)}<br><small>oleh ${E(G.gelar.oleh || '')} · ${fdt(G.gelar.at)}</small> <button class="k-btn k-ghostw sm" data-act="bs-cabut" data-id="${E(G.gelar.id)}" data-nm="${E(G.gelar.nama)}">Cabut</button>`, 'bi-trophy-fill') : ''}
+${G.belum ? alertx('warn', `<b>${G.belum}</b> nomor di kelompok ini belum disahkan wasit, jadi belum dihitung.`) : ''}
+${top.length ? `<p class="mut sm" style="margin:0 0 6px">Calon 3 besar</p>${top.map((k, i) => baris(G, k, i)).join('')}` : '<p class="mut">Belum ada hasil yang disahkan.</p>'}
+${sisa.length ? `<details class="bs-more"><summary>Peringkat ${sisa.length > 1 ? '4–' + (3 + sisa.length) : '4'}</summary>${sisa.map((k, i) => baris(G, k, i + 3)).join('')}</details>` : ''}`, kanan);
+}
+function rekorCard(R) {
+  const urut = { 'Gaya Bebas': 1, 'Gaya Punggung': 2, 'Gaya Dada': 3, 'Gaya Kupu-kupu': 4, 'Gaya Ganti Perorangan': 5 };
+  const grp = {}; R.rows.forEach(r => (grp[r.kol + ' · ' + GL(r.g)] = grp[r.kol + ' · ' + GL(r.g)] || []).push(r));
+  const tabel = Object.keys(grp).sort().map(k => `<details class="bs-nr"><summary>${E(k)} <small class="mut">${grp[k].length} nomor</small></summary><div class="k-scroll"><table class="k-table"><thead><tr><th>Nomor</th><th>Rekor</th><th>Split 25 m</th><th>Pemegang</th><th>Tanggal</th></tr></thead><tbody>${grp[k].sort((a, b) => urut[a.gaya] - urut[b.gaya] || a.jarak - b.jarak).map(r => `<tr><td>${r.jarak}m ${E(r.gaya)}</td><td class="mono"><b>${E(r.waktu)}</b></td><td class="mono">${E(r.s25 || '–')}</td><td>${E(r.nama)}</td><td class="mono">${E(r.tgl)}</td></tr>`).join('')}</tbody></table></div></details>`).join('');
+  return card('Rekor nasional acuan', `<p>${R.info.bawaan ? 'Data bawaan' : 'Diimpor'}: <b>${E(R.info.sumber)}</b>${R.info.at ? ` · ${fdt(R.info.at)} oleh ${E(R.info.oleh || '')}` : ''} · ${R.n} nomor perorangan.</p>
+<ol class="np-langkah"><li>Buka <a href="${NR_URL}" target="_blank" rel="noopener">halaman rekor nasional World Aquatics</a>, pilih <b>Gender</b> dan <b>Pool</b> (SCM/LCM), lalu klik <b>Export</b>.</li><li>Impor satu atau beberapa file <code>RecordsExport…xlsx</code> sekaligus. Hanya rekor berstatus <i>Approved</i> yang dipakai; nomor yang tidak ada di file tetap memakai rekor lama.</li></ol>
+<div class="k-qa"><label class="k-btn k-navy sm" style="cursor:pointer"><i class="bi bi-file-earmark-arrow-up"></i> Impor file World Aquatics<input type="file" accept=".xlsx,.xls" multiple hidden data-chg="bs-file"></label>${R.info.bawaan ? '' : '<button class="k-btn k-ghostw sm" data-act="bs-reset">Kembalikan data bawaan</button>'}</div>${tabel}`);
+}
+V['a-best'] = function () {
+  const q = S.bsMus ? { musim: S.bsMus } : {};
+  swr('best_' + (S.bsMus || ''), 'bs.get', q, d => {
+    S.bsD = d;
+    const aturan = d.mode === 'TOTAL' ? 'total medali terbanyak' : 'emas terbanyak, lalu perak, lalu perunggu (seperti klasemen)';
+    main(`<div class="k-wrap pad">${ph('Best Swimmer', 'Perenang terbaik tiap kelompok putra & putri · hanya Super Admin')}
+<div class="bs-bar">${d.musimList.length > 1 ? `<label class="k-f" style="margin:0"><span>Musim</span><select class="k-in" data-chg="bs-mus">${d.musimList.map(m => `<option${m === d.musim ? ' selected' : ''}>${E(m)}</option>`).join('')}</select></label>` : ''}<div><small class="mut">Urutan medali</small><div class="k-seg"><button class="${d.mode === 'EMAS' ? 'on' : ''}" data-act="bs-mode" data-v="EMAS">Emas dulu</button><button class="${d.mode === 'TOTAL' ? 'on' : ''}" data-act="bs-mode" data-v="TOTAL">Total medali</button></div></div></div>
+${alertx('info', `Peringkat dari hasil yang <b>sudah disahkan wasit</b>. Urutan: ${aturan}. Bila sama, menang yang <b>poin rekor nasional</b>-nya lebih besar: tiap nomor bernilai 1000 × (rekor nasional ÷ waktu)³, lalu dijumlah. Nomor 25 m memakai split 25 m dari rekor 50 m gaya yang sama (atau ½ rekor 50 m).`, 'bi-info-circle')}
+${d.grup.length ? d.grup.map(grupCard).join('') : empty('bi-trophy', 'Belum ada hasil lomba yang disahkan wasit pada musim ini.')}
+${rekorCard(d.rekor)}</div>`);
+  }, 5000);
+};
+const segar = () => { bustCache('best_'); go('a-best'); };
+INP['bs-mus'] = s => { S.bsMus = s.value; go('a-best'); };
+ACT['bs-mode'] = async a => { if (a.classList.contains('on')) return; busy(a, true); try { const r = await rp('bs.mode', { mode: a.dataset.v }); toast(r.message); segar(); } catch (e) { toast(e.message, 'err'); busy(a, false); } };
+ACT['bs-kirim'] = a => {
+  const d = S.bsD, G = d.grup.filter(x => x.jk === a.dataset.jk && x.g === a.dataset.g)[0], k = G && G.kandidat.filter(x => x.aid === a.dataset.aid)[0]; if (!k) return;
+  const ganti = G.gelar && G.gelar.aid !== k.aid;
+  modal('Kirim gelar Best Swimmer', `<form data-submit="bs-kirim" data-jk="${E(G.jk)}" data-g="${G.g}" data-aid="${E(k.aid)}" data-ganti="${G.gelar ? 1 : 0}">
+<div class="bs-sum"><i class="bi bi-trophy-fill"></i><div><b>${E(k.nama)}</b><small class="mut">${E(k.kont || '')}</small><small>Best Swimmer ${E(jn(G.jk))} ${GL(G.g)} · peringkat ${k.rank} · ${k.e} emas, ${k.p} perak, ${k.b} perunggu · ${k.poin} poin</small></div></div>
+${ganti ? alertx('warn', `Gelar kelompok ini sudah dikirim ke <b>${E(G.gelar.nama)}</b>. Mengirim ke ${E(k.nama)} akan menggantinya.`) : G.gelar ? alertx('info', 'Gelar sudah dikirim ke atlet ini; kirim ulang untuk mengubah nama event.') : ''}
+${field('Nama event', `<input class="k-in" name="event" value="${E(G.gelar ? G.gelar.event : d.eventDefault)}" required minlength="3" maxlength="120">`, 1, 'Tampil di profil atlet, mis. nama kejuaraan dan musimnya.')}
+<label class="sa-op"><input type="checkbox" name="email" checked><span><b>Kirim email pemberitahuan ke akun</b><small>Ke email penanggung jawab sekolah/klub atlet, bila tersedia.</small></span></label>
+<div class="k-bar"><button type="button" class="k-btn k-ghostw" data-act="mx">Batal</button><button class="k-btn k-orange">${ganti ? 'Ganti penerima' : 'Kirim gelar'}</button></div></form>`);
+};
+SUBMIT['bs-kirim'] = async f => {
+  const b = $('button.k-orange', f), v = form(f); busy(b, true);
+  try { const r = await rp('bs.kirim', { musim: S.bsD.musim, jk: f.dataset.jk, g: f.dataset.g, aid: f.dataset.aid, event: v.event, email: !!$('[name=email]', f).checked, ganti: f.dataset.ganti === '1' }); toast(r.message); closeModal(); bustCache('pf_'); segar(); }
+  catch (e) { toast(e.message, 'err'); busy(b, false); }
+};
+ACT['bs-cabut'] = async a => { if (!(await ask(`Cabut gelar Best Swimmer ${a.dataset.nm}? Gelar tidak tampil lagi di profil atlet.`, 'Cabut gelar', true))) return; busy(a, true); try { const r = await rp('bs.cabut', { musim: S.bsD.musim, id: a.dataset.id }); toast(r.message); bustCache('pf_'); segar(); } catch (e) { toast(e.message, 'err'); busy(a, false); } };
+ACT['bs-reset'] = async a => { if (!(await ask('Kembalikan rekor nasional ke data bawaan aplikasi?', 'Kembalikan'))) return; busy(a, true); try { const r = await rp('bs.rekor', { reset: true }); toast(r.message); segar(); } catch (e) { toast(e.message, 'err'); busy(a, false); } };
+// Baca file ekspor rekor World Aquatics (RecordsExport.xlsx): Event, Pool, Time, Athlete, Date, Splits, Status
+const GAYA_EN = { Freestyle: 'Gaya Bebas', Backstroke: 'Gaya Punggung', Breaststroke: 'Gaya Dada', Butterfly: 'Gaya Kupu-kupu', Medley: 'Gaya Ganti Perorangan' };
+const keMs = t => { const p = String(t == null ? '' : t).trim().split(':'); if (!p[0]) return 0; const s = parseFloat(p.pop()), m = p.length ? parseInt(p.pop(), 10) : 0, h = p.length ? parseInt(p.pop(), 10) : 0; return isNaN(s) ? 0 : Math.round((h * 3600 + m * 60 + s) * 1000); };
+const tgl = v => v instanceof Date ? new Date(v.getTime() - v.getTimezoneOffset() * 60000).toISOString().slice(0, 10) : String(v || '').slice(0, 10);
+function bacaRekor(rows) {
+  const hi = rows.findIndex(r => r && r.indexOf('Event') >= 0 && r.indexOf('Time') >= 0); if (hi < 0) return [];
+  const H = rows[hi], c = n => H.indexOf(n), out = [];
+  rows.slice(hi + 1).forEach(r => {
+    const m = /^(Men|Women)'s (\d+)m (Freestyle|Backstroke|Breaststroke|Butterfly|Medley)$/.exec(String(r[c('Event')] || '').trim());
+    if (!m || String(r[c('Status')] || '').trim() !== 'Approved') return;
+    const ms = keMs(r[c('Time')]), d = Number(m[2]); if (!ms) return;
+    const sp = String(r[c('Splits')] || '').split(',').map(x => x.trim()).filter(Boolean), s1 = d === 50 && sp.length >= 2 ? keMs(sp[0]) : 0;
+    out.push([String(r[c('Pool')] || '').trim(), m[1] === 'Men' ? 'PUTRA' : 'PUTRI', d, GAYA_EN[m[3]], ms, s1 > ms * 0.4 && s1 < ms * 0.6 ? s1 : 0, String(r[c('Athlete')] || '').trim(), tgl(r[c('Date')])]);
+  });
+  return out;
+}
+INP['bs-file'] = async i => {
+  const fs = Array.from(i.files || []); if (!fs.length) return;
+  try {
+    await loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
+    const best = {};
+    for (const f of fs) { const wb = XLSX.read(await f.arrayBuffer(), { cellDates: true }); wb.SheetNames.forEach(n => bacaRekor(XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: '' })).forEach(r => { const k = r.slice(0, 4).join('|'); if (!best[k] || r[4] < best[k][4]) best[k] = r; })); }
+    const data = Object.keys(best).map(k => best[k]);
+    if (!data.length) { toast('Tidak ada rekor Approved yang terbaca. Pastikan file berasal dari tombol Export di halaman rekor World Aquatics.', 'err'); i.value = ''; return; }
+    if (!(await ask(`Perbarui ${data.length} rekor nasional dari ${fs.length} file? Nomor yang tidak ada di file tetap memakai rekor lama.`, 'Perbarui rekor'))) { i.value = ''; return; }
+    const r = await rp('bs.rekor', { data, sumber: fs.map(f => f.name).join(', ') }); toast(r.message); segar();
+  } catch (e) { toast(e.message, 'err'); }
+  i.value = '';
+};
 })();
