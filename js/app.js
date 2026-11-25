@@ -1,4 +1,4 @@
-/* KRP Pro v2.3.0 — modul publik & akun pendaftar. Dibuat otomatis oleh tools/build.js dari folder src/. Jangan diedit langsung. */
+/* KRP Pro v2.3.3 — modul publik & akun pendaftar. Dibuat otomatis oleh tools/build.js dari folder src/. Jangan diedit langsung. */
 (function () {
 'use strict';
 /* ===== Dasar ===== */
@@ -250,7 +250,7 @@ const NAV_APP = {
   KONTINGEN: [['m-dash', 'Beranda Akun', 'bi-house'], ['m-nomor', 'Daftar Nomor Lomba', 'bi-plus-circle'], ['m-baru', 'Tambah Atlet Baru', 'bi-person-plus'], ['m-png', 'Pengajuan Perubahan', 'bi-arrow-left-right'], ['m-akun', 'Akun Saya', 'bi-person-circle']]
 };
 const isApp = r => /^[am]-/.test(r);
-const ADMIN_JS = 'js/admin.js?v=2.3.0-6fc4d3c2';
+const ADMIN_JS = 'js/admin.js?v=2.3.3-3d5ea995';
 function muatAdmin() { if (!S._adm) S._adm = loadScript(ADMIN_JS).then(() => { if (!V['a-dash']) throw new Error('Modul admin tidak lengkap.'); S._admOK = true; }).catch(e => { S._adm = null; throw e; }); return S._adm; }
 function go(route, param, noPush) {
   if (isApp(route) && !S.me) { route = 'login'; param = null; }
@@ -389,15 +389,35 @@ ${Object.keys(byDay).sort((a, b) => a - b).map(h => card(dayLabel(h), `<div clas
 const idStart = () => { const B = S.B || { events: [], st: {} }; return (B.events.filter(e => B.st[e.id] && B.st[e.id].a > 0)[0] || B.events[0] || {}).id; };
 const idLive = () => { const B = S.B || { events: [], st: {} }; return (B.events.filter(e => B.st[e.id] && B.st[e.id].s !== 'NONE')[0] || B.events.filter(e => B.st[e.id] && B.st[e.id].a > 0)[0] || B.events[0] || {}).id; };
 V.startlist = function (id) {
-  const B = S.B; id = id || idStart();
-  if (!id) return main(`<div class="k-wrap pad">${empty('bi-list-ol', 'Belum ada nomor lomba.')}</div>`);
-  swr('sl_' + id, 'pub.start', { id }, d => {
-    const e = d.event;
-    main(`<div class="k-wrap pad">${evPicker('startlist', id, true)}<div class="k-evh"><div><span class="tag">EVENT ${e.no}${e.jam ? ' · ' + E(e.jam) + ' WIB (estimasi)' : ''}</span><h2>${E(evTitle(e))}</h2><p>${d.heats.length} seri · ${d.lanes} lintasan</p></div>${d.rec ? `<div class="rec"><small>Rekor kejuaraan</small><b class="mono">${E(d.rec.waktu)}</b><small>${E(d.rec.nama)}</small></div>` : ''}</div>
-${d.tarik ? alertx('warn', '<b>Start list sedang direvisi panitia.</b> Seri dan lintasan akan tampil lagi setelah diterbitkan ulang.', 'bi-hourglass-split') : ''}${d.heats.length ? d.heats.map(h => card(`Seri ${h.n} dari ${d.heats.length}`, `<div class="k-scroll"><table class="k-table"><thead><tr><th>Lane</th><th>Nama Atlet</th><th>Kls</th><th>Asal Klub / Sekolah</th><th>Asal Wilayah</th><th>Entry</th></tr></thead><tbody>${h.rows.map(r => `<tr><td class="mono"><b>${r.lane}</b></td><td><a href="#" data-go="profil" data-p="${r.id}"><b>${E(r.nama)}</b></a></td><td>${kls(r.kls)}</td><td>${E([r.sk, r.kl].filter(Boolean).join(' / '))}</td><td>${E(r.wl || '')}</td><td class="mono">${E(r.seed)}</td></tr>`).join('')}</tbody></table></div>`, '', true)).join('') : empty('bi-hourglass', 'Start list belum tersedia untuk nomor ini.')}
-<div class="k-bar"><button class="k-btn k-navy" data-go="live" data-p="${id}">Lihat hasil nomor ini</button></div></div>`);
+  S.slF = Object.assign({ q: '', jk: '', g: '', urut: 'nama' }, S.slF || {}, { ev: id || '', n: 150 }, id ? { q: '', jk: '', g: '' } : {}); // dari tautan nomor (Jadwal): tampilkan semua atlet nomor itu
+  swr('slall', 'pub.sl', {}, d => {
+    S.slD = d; const B = S.B, f = S.slF, evI = {}; B.events.forEach(e => { evI[e.id] = e; });
+    const ada = d.rows.filter(r => evI[r[4]]), pakai = {}; ada.forEach(r => { pakai[r[4]] = 1; });
+    const evs = B.events.filter(e => pakai[e.id]), jks = (B.jenjang || []).map(j => j.kode).filter(k => evs.some(e => e.jk === k));
+    main(`<div class="k-wrap pad">${ph('Start List', 'Daftar atlet, nomor lomba yang diikuti, dan catatan waktu entry')}
+${d.tarik ? alertx('warn', '<b>Start list sedang direvisi panitia.</b> Daftar akan tampil lagi setelah diterbitkan ulang.', 'bi-hourglass-split') : !ada.length ? empty('bi-list-ol', 'Start list belum terbit. Daftar ini tampil setelah pendaftaran ditutup dan start list disusun panitia.') : `<div class="sl-f"><input class="k-in" data-in="sl-q" placeholder="Cari nama atlet atau sekolah…" value="${E(f.q)}">
+<select class="k-in" data-chg="sl-jk" aria-label="Kelompok"><option value="">Semua kelompok</option>${jks.map(k => `<option value="${E(k)}"${k === f.jk ? ' selected' : ''}>${E(jn(k))}</option>`).join('')}</select>
+<select class="k-in" data-chg="sl-g" aria-label="Putra/putri"><option value="">Putra &amp; putri</option><option value="PUTRA"${f.g === 'PUTRA' ? ' selected' : ''}>Putra</option><option value="PUTRI"${f.g === 'PUTRI' ? ' selected' : ''}>Putri</option></select>
+<select class="k-in" data-chg="sl-ev" aria-label="Nomor lomba"><option value="">Semua nomor lomba</option>${evs.map(e => `<option value="${e.id}"${e.id === f.ev ? ' selected' : ''}>#${e.no} · ${E(evTitle(e))}</option>`).join('')}</select>
+<div class="k-seg"><button class="${f.urut === 'nama' ? 'on' : ''}" data-act="sl-urut" data-v="nama">Urut nama</button><button class="${f.urut === 'nomor' ? 'on' : ''}" data-act="sl-urut" data-v="nomor">Urut nomor lomba</button></div></div><div id="sl-list"></div>`}</div>`);
+    drawSL();
   }, 30000);
 };
+const slMs = t => { const m = /^(?:(\d+):)?(\d+(?:\.\d+)?)$/.exec(String(t || '').trim()); return m ? (Number(m[1] || 0) * 60 + Number(m[2])) * 1000 : 9e12; };
+function drawSL() {
+  const el = $('#sl-list'), d = S.slD; if (!el || !d) return;
+  const f = S.slF, evI = {}; S.B.events.forEach(e => { evI[e.id] = e; }); const q = f.q.toLowerCase().trim();
+  const L = d.rows.filter(r => { const e = evI[r[4]]; return e && (!f.jk || e.jk === f.jk) && (!f.g || e.g === f.g) && (!f.ev || e.id === f.ev) && (!q || (r[1] + ' ' + r[2]).toLowerCase().indexOf(q) >= 0); });
+  L.sort(f.urut === 'nomor' ? (a, b) => evI[a[4]].no - evI[b[4]].no || slMs(a[5]) - slMs(b[5]) || String(a[1]).localeCompare(String(b[1]), 'id') : (a, b) => String(a[1]).localeCompare(String(b[1]), 'id') || String(a[0]).localeCompare(String(b[0])) || evI[a[4]].no - evI[b[4]].no);
+  const nAtl = new Set(L.map(r => r[0])).size;
+  el.innerHTML = L.length ? `<p class="mut sm">${nAtl} atlet · ${L.length} nomor diikuti${f.ev ? ` · <a href="#" data-go="live" data-p="${f.ev}">Lihat hasil nomor ini</a>` : ''}</p><section class="k-card"><div class="k-scroll"><table class="k-table sl-t"><thead><tr><th>Nama</th><th>Kelompok</th><th>Asal Sekolah</th><th>Kelas</th><th>Nomor Lomba</th><th>Catatan Waktu</th></tr></thead><tbody>${L.slice(0, f.n).map(r => { const e = evI[r[4]]; return `<tr><td><a href="#" data-go="profil" data-p="${E(r[0])}"><b>${E(r[1])}</b></a></td><td>${E(jn(e.jk))}</td><td>${E(r[2])}</td><td>${E(kls(r[3]))}</td><td><span class="mono">#${e.no}</span> ${E(e.nama)} <small class="mut">${E(G_L[e.g] || e.g)}</small></td><td class="mono"><b>${E(r[5])}</b></td></tr>`; }).join('')}</tbody></table></div></section>${L.length > f.n ? `<div class="k-bar"><button class="k-btn k-outline" data-act="sl-more">Tampilkan ${Math.min(150, L.length - f.n)} lagi (${L.length - f.n} tersisa)</button></div>` : ''}` : '<p class="mut">Tidak ada atlet yang cocok dengan pencarian atau filter.</p>';
+}
+INP['sl-q'] = i => { S.slF.q = i.value; S.slF.n = 150; clearTimeout(S._slq); S._slq = setTimeout(drawSL, 150); };
+INP['sl-jk'] = i => { S.slF.jk = i.value; S.slF.n = 150; drawSL(); };
+INP['sl-g'] = i => { S.slF.g = i.value; S.slF.n = 150; drawSL(); };
+INP['sl-ev'] = i => { S.slF.ev = i.value; S.slF.n = 150; drawSL(); };
+ACT['sl-urut'] = a => { S.slF.urut = a.dataset.v; $$('.sl-f .k-seg button').forEach(b => b.classList.toggle('on', b === a)); drawSL(); };
+ACT['sl-more'] = () => { S.slF.n += 150; drawSL(); };
 const liveDetik = () => Math.max(15, Math.min(300, Number(cfgv('live_detik')) || 30));
 ACT['live-now'] = a => { busy(a, true); Promise.resolve(S.liveNow && S.liveNow()).then(() => busy(a, false)); };
 V.live = function (id) {
@@ -560,7 +580,7 @@ SUBMIT.daftar = async f => {
 Object.assign(KRP.PRE, {
   klas: () => (S.klasMode || 'tahun') === 'tahun' ? [['klt_' + (S.klasTh || 'kini'), 'pub.klas.tahun', S.klasTh ? { tahun: S.klasTh } : {}, 30000]] : [['klas', 'pub.klas', {}, 30000]],
   rekor: () => [['rekor', 'pub.rekor', {}, 60000]], atlet: () => [['atlet', 'pub.atlet', {}, 60000]], galeri: () => [['galeri', 'pub.galeri', {}, 60000]], arsip: () => [['klas', 'pub.klas', {}, 30000]],
-  startlist: id => { id = id || idStart(); return id ? [['sl_' + id, 'pub.start', { id }, 30000]] : []; },
+  startlist: () => [['slall', 'pub.sl', {}, 30000]],
   live: id => { id = id || idLive(); return id ? [['live_' + id, 'pub.live', { id }, 15000]] : []; },
   profil: id => id ? [['pf_' + id, 'pub.profil', { id }, 60000]] : []
 });
@@ -680,18 +700,31 @@ function drawNm() {
   el.innerHTML = card('1. Pilih atlet', `<div class="k-chips" style="gap:8px">${d.atlet.map(a => { const used = a.ent.filter(e => e.v !== 'REJECTED').length, full = used >= maxEv || !eligible(a, a.ent).length; return `<label class="k-chip${sel[a.id] ? ' on' : ''}" style="${full ? 'opacity:.5;cursor:not-allowed' : ''}"><input type="checkbox" hidden data-chg="nm-a" value="${a.id}" ${sel[a.id] ? 'checked' : ''} ${full ? 'disabled' : ''}> ${E(a.nama)} <small>(${used}/${maxEv})</small></label>`; }).join('')}</div>`) +
     Object.keys(sel).map(id => { const a = d.atlet.filter(x => x.id === id)[0]; if (!a) return ''; const used = a.ent.filter(e => e.v !== 'REJECTED').length, evs = eligible(a, a.ent), cnt = Object.keys(sel[id]).length;
       const semua = evAtlet(a).filter(e => !a.ent.some(x => x.eid === e.id && x.v !== 'REJECTED')), kurang = Math.max(0, minEv - used - cnt);
-      return card(`2. Nomor untuk ${E(a.nama)}`, `<p class="mut sm">${E(jn(a.jk))} · ${G_L[a.g]} · sudah ${used} nomor · ${minEv === maxEv ? 'wajib ' + maxEv : 'minimal ' + minEv + ', maksimal ' + maxEv} nomor per atlet</p>${kurang ? `<p class="mn-kurang"><i class="bi bi-exclamation-circle"></i> Pilih ${kurang} nomor lagi.</p>` : ''}${semua.length ? semua.map(e => { const on = sel[id][e.id] !== undefined, off = tutup(e) || penuh(e), lock = !on && (off || used + cnt >= maxEv); return `<div class="k-ev${off ? ' off' : ''}"><label><input type="checkbox" data-chg="nm-e" data-a="${id}" value="${e.id}" ${on ? 'checked' : ''} ${lock ? 'disabled' : ''}><span><b>#${e.no} ${E(e.nama)}</b><small>${e.jam ? 'Estimasi ' + E(e.jam) + ' · ' : ''}Hari ${e.hari}</small></span>${evState(e) || (pk ? '' : `<b>${rupiah(e.fee)}</b>`)}</label>${on ? `<input class="k-in tm sm" data-in="nm-seed" data-a="${id}" data-e="${e.id}" placeholder="Waktu terbaik, mis. 00:57.94 (kosong = NT)" value="${E(sel[id][e.id])}">` : ''}</div>`; }).join('') : '<p class="mut">Tidak ada nomor tersisa untuk atlet ini.</p>'}`);
+      return card(`2. Nomor untuk ${E(a.nama)}`, `<p class="mut sm">${E(jn(a.jk))} · ${G_L[a.g]} · sudah ${used} nomor · ${minEv === maxEv ? 'wajib ' + maxEv : 'minimal ' + minEv + ', maksimal ' + maxEv} nomor per atlet</p>${kurang ? `<p class="mn-kurang"><i class="bi bi-exclamation-circle"></i> Pilih ${kurang} nomor lagi.</p>` : ''}${semua.length ? semua.map(e => { const on = sel[id][e.id] !== undefined, off = tutup(e) || penuh(e), lock = !on && (off || used + cnt >= maxEv); return `<div class="k-ev${off ? ' off' : ''}"><label><input type="checkbox" data-chg="nm-e" data-a="${id}" value="${e.id}" ${on ? 'checked' : ''} ${lock ? 'disabled' : ''}><span><b>#${e.no} ${E(e.nama)}</b><small>${e.jam ? 'Estimasi ' + E(e.jam) + ' · ' : ''}Hari ${e.hari}</small></span>${evState(e) || (pk ? '' : `<b>${rupiah(e.fee)}</b>`)}</label>${on ? seedBox(a, e, sel[id][e.id]) : ''}</div>`; }).join('') : '<p class="mut">Tidak ada nomor tersisa untuk atlet ini.</p>'}`);
     }).join('');
   let tot = 0, n = 0; Object.keys(sel).forEach(id => { const a = d.atlet.filter(x => x.id === id)[0], used = a ? a.ent.filter(e => e.v !== 'REJECTED').length : 0; Object.keys(sel[id]).forEach((eid, j) => { n++; tot += feeIdx(S.B.events.filter(e => e.id === eid)[0] || {}, used + j); }); }); S.nm.total = tot; S.nm.n = n;
   $('#nm-sum').innerHTML = `<div class="k-sum"><span>${Object.keys(sel).length} atlet · ${n} nomor${pk ? ' · paket ' + rupiah(EVR().paket) + '/atlet' : ''}</span><b class="big">${rupiah(tot)}</b></div><br>`;
   if (!$('#nm-dz').innerHTML) $('#nm-dz').innerHTML = dz('bayar', 'Bukti transfer pembayaran', 'PDF/JPG/PNG maks 5 MB — satu bukti untuk semua nomor di atas');
 }
 INP['nm-a'] = i => { if (i.checked) S.nm.sel[i.value] = S.nm.sel[i.value] || {}; else delete S.nm.sel[i.value]; drawNm(); };
-INP['nm-e'] = i => { const a = S.nm.sel[i.dataset.a]; if (i.checked) a[i.value] = ''; else delete a[i.value]; drawNm(); };
+INP['nm-e'] = i => { const a = S.nm.sel[i.dataset.a], at = S.M.atlet.filter(x => x.id === i.dataset.a)[0], pb = at && (at.pb || {})[i.value]; if (i.checked) a[i.value] = pb ? pb.w : ''; else delete a[i.value]; drawNm(); };
+// Entry time: bila atlet sudah punya catatan waktu resmi di nomor yang sama (kejuaraan sebelumnya), terisi otomatis dan tidak bisa NT.
+const kolL = k => k === 'SCM' ? 'kolam 25 m' : 'kolam 50 m';
+function seedBox(a, e, v) {
+  const pb = (a.pb || {})[e.id];
+  if (!pb) return `<input class="k-in tm sm" data-in="nm-seed" data-a="${a.id}" data-e="${e.id}" placeholder="Waktu terbaik, mis. 00:57.94 (kosong = NT)" value="${E(v)}">`;
+  return `<input class="k-in tm sm" data-in="nm-seed" data-a="${a.id}" data-e="${e.id}" placeholder="Wajib diisi, mis. ${E(pb.w)}" value="${E(v)}" required><small class="nm-pb"><i class="bi bi-clock-history"></i> Catatan sebelumnya <b class="mono">${E(pb.w)}</b> · ${E(pb.src)}${e.ct && pb.kol !== e.ct ? ' (' + kolL(pb.kol) + ')' : ''}. Ubah bila ada catatan yang lebih baru; tidak bisa NT.</small>`;
+}
+const seedOk = v => { // sama dengan parseWaktu_ di server: [jj:]mm:dd.ss atau dd.ss, bukan NT, > 0
+  const s = String(v || '').trim().replace(',', '.'); if (!s || /^nt$/i.test(s)) return false; const p = s.split(':'); if (p.length > 3) return false;
+  const last = p.pop(); if (!/^\d{1,2}(\.\d{1,3})?$/.test(last) || parseFloat(last) >= 60 || !p.every(x => /^\d{1,2}$/.test(x)) || (p.length && Number(p[p.length - 1]) >= 60)) return false;
+  return parseFloat(last) > 0 || p.some(x => Number(x) > 0);
+};
 INP['nm-seed'] = i => { S.nm.sel[i.dataset.a][i.dataset.e] = i.value; };
 SUBMIT.nomor = async () => {
   const b = $('#nm-go'), n = S.nm; if (!n.n) return toast('Pilih minimal satu atlet dan satu nomor.', 'err');
   const minEv = EVR().min || 1; for (const id of Object.keys(n.sel)) { const a = S.M.atlet.filter(x => x.id === id)[0], used = a.ent.filter(e => e.v !== 'REJECTED').length, c = Object.keys(n.sel[id]).length; if (used + c < minEv) return toast(`${a.nama}: wajib ${minEv} nomor per atlet (terpilih ${used + c}).`, 'err'); }
+  for (const id of Object.keys(n.sel)) { const a = S.M.atlet.filter(x => x.id === id)[0]; for (const eid of Object.keys(n.sel[id])) { const pb = (a.pb || {})[eid], v = String(n.sel[id][eid] || '').trim(), ev = S.B.events.filter(e => e.id === eid)[0] || {}; if (pb && (!v || /^nt$/i.test(v) || !seedOk(v))) return toast(`${a.nama} #${ev.no}: catatan waktu wajib diisi dan tidak bisa NT karena sudah punya catatan ${pb.w}. Isi waktu terbaru, mis. ${pb.w}.`, 'err'); } }
   if (n.total > 0 && !S.files.bayar) return toast('Unggah bukti pembayaran terlebih dahulu.', 'err');
   busy(b, true);
   try { const up = await uploadPending(['bayar']); const items = Object.keys(n.sel).map(id => ({ atletId: id, events: Object.keys(n.sel[id]).map(eid => ({ eid, seed: n.sel[id][eid] })) })); const r = await rp('m.daftarnomor', { items, bayar: up.bayar }); S.nm = null; refreshM(); toast(r.message); go('m-dash'); }
