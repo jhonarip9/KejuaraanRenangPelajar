@@ -1,4 +1,4 @@
-/* KRP Pro v2.3.3 — gaya tampilan. Dibuat otomatis oleh tools/build.js dari folder src/. Jangan diedit langsung. */
+/* KRP Pro v2.3.4 — gaya tampilan. Dibuat otomatis oleh tools/build.js dari folder src/. Jangan diedit langsung. */
 :root{--pri:#0B3B6F;--pri-d:#061E3C;--aqua:#0EA5C6;--ora:#FF6B2C;--ora-h:#E8571A;--gold:#FFC23D;--bg:#fff;--surf:#EEF6FA;--card:#fff;--tx:#0B1F33;--tx2:#4A6072;--ln:#D6E4EC;--ok:#1E8E5A;--ok-b:#E3F4EC;--wn:#B26A00;--wn-b:#FFF4DB;--er:#C0392B;--er-b:#FDECEA;--in:#1B7F9E;--in-b:#E0F2F7;--nu:#64748B;--nu-b:#F1F5F9;--silver:#9AA8B5;--bronze:#B07A4A;--r:12px;--r2:8px;--sh:0 1px 3px rgba(10,61,98,.06),0 4px 12px rgba(10,61,98,.04);--mono:'JetBrains Mono',ui-monospace,monospace;--focus:0 0 0 3px rgba(27,127,158,.35)}
 [data-theme=dark]{--bg:#071A2B;--surf:#0C2238;--card:#0E2740;--tx:#E6F2FF;--tx2:#9DB4C8;--ln:#1E3C58;--ok-b:#10372B;--wn-b:#3A2D0E;--er-b:#3B1B18;--in-b:#0F3444;--nu-b:#16283A;--nu:#94A3B8;--sh:0 1px 3px rgba(0,0,0,.4)}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--tx);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
@@ -314,3 +314,17 @@ body[data-shell=app] #main{margin-left:260px}
 .sl-t td:nth-child(3)::before{content:'· '}.sl-t td:nth-child(4)::before{content:'· Kelas '}}
 /* v2.3.2: catatan waktu sebelumnya saat daftar nomor */
 .nm-pb{display:block;margin-top:4px;font-size:12px;color:var(--in)}.nm-pb b{color:var(--tx)}
+/* v2.3.4 Tata letak halaman buku */
+.bl-grid{display:grid;grid-template-columns:132px minmax(0,1fr);gap:18px;align-items:start}
+.bl-mini{display:grid;gap:8px;justify-items:center;text-align:center;line-height:1.35}
+.bl-pg{position:relative;width:120px;aspect-ratio:210/297;background:#fff;border:1px solid var(--ln);border-radius:3px;box-shadow:0 3px 10px rgba(10,30,60,.14)}
+.bl-isi{position:absolute;border:1px dashed #9AAABD;display:flex;flex-direction:column;overflow:hidden;transition:all .15s}
+.bl-kop{flex:none;background:linear-gradient(#1C2536 0 22%,transparent 22% 34%,#C9D3DF 34% 52%,transparent 52% 64%,#C9D3DF 64% 76%,transparent 76% 88%,#1C2536 88%)}
+.bl-row{position:relative;flex:1;margin-top:2px;background:repeating-linear-gradient(#fff 0 55%,#DCE3EC 55% 100%);transition:background-size .15s}
+.bl-m{border:0;padding:0;margin:0 0 4px;min-width:0}.bl-m legend{font-weight:600;font-size:13px;margin-bottom:6px;padding:0}
+.bl-m4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.bl-m4 .k-f{margin:0}
+.bl-bar{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;align-items:center;padding-top:14px;border-top:1px solid var(--ln);margin-top:6px}
+.bl-pvj{display:flex;align-items:center;gap:8px;margin-right:auto}.bl-pvj .k-in{width:auto;min-width:130px}
+.bl-pvh{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.bl-frame{display:block;width:100%;height:70vh;border:1px solid var(--ln);border-radius:8px;background:#E3E8EF}
+@media(max-width:640px){.bl-grid{grid-template-columns:1fr}.bl-mini{grid-template-columns:auto 1fr;justify-items:start;text-align:left;align-items:center}.bl-m4{grid-template-columns:repeat(2,minmax(0,1fr))}.bl-pvj{width:100%;margin-right:0}.bl-pvj .k-in{flex:1}.bl-bar .k-btn{flex:1 1 auto}}

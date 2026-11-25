@@ -5,8 +5,8 @@
      index.html berubah (ada versi baru), halaman diberi tahu untuk menawarkan "Muat ulang".
    - Font & ikon CDN : cache-first.
    - Permintaan API Apps Script : TIDAK pernah disentuh (selalu langsung ke server). */
-const VERSI = '2.3.3-3d5ea995', CACHE = 'krp-shell-' + VERSI;
-const SHELL = ['index.html', 'css/style.css?v=' + VERSI, 'js/config.js?v=2.3.3', 'js/app.js?v=' + VERSI, 'manifest.webmanifest', 'img/icon.svg', 'img/icon-192.png'];
+const VERSI = '2.3.4-151d9097', CACHE = 'krp-shell-' + VERSI;
+const SHELL = ['index.html', 'css/style.css?v=' + VERSI, 'js/config.js?v=2.3.4', 'js/app.js?v=' + VERSI, 'manifest.webmanifest', 'img/icon.svg', 'img/icon-192.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).catch(() => { })); self.skipWaiting(); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.indexOf('krp-') === 0 && k !== CACHE && k !== 'krp-cdn' && k !== TANDA).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 const simpan = (r, res) => { if (res && res.ok) { const cp = res.clone(); caches.open(CACHE).then(c => c.put(r, cp)); } return res; };

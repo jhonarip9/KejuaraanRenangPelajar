@@ -1,4 +1,4 @@
-/* KRP Pro v2.3.3 — modul publik & akun pendaftar. Dibuat otomatis oleh tools/build.js dari folder src/. Jangan diedit langsung. */
+/* KRP Pro v2.3.4 — modul publik & akun pendaftar. Dibuat otomatis oleh tools/build.js dari folder src/. Jangan diedit langsung. */
 (function () {
 'use strict';
 /* ===== Dasar ===== */
@@ -250,7 +250,7 @@ const NAV_APP = {
   KONTINGEN: [['m-dash', 'Beranda Akun', 'bi-house'], ['m-nomor', 'Daftar Nomor Lomba', 'bi-plus-circle'], ['m-baru', 'Tambah Atlet Baru', 'bi-person-plus'], ['m-png', 'Pengajuan Perubahan', 'bi-arrow-left-right'], ['m-akun', 'Akun Saya', 'bi-person-circle']]
 };
 const isApp = r => /^[am]-/.test(r);
-const ADMIN_JS = 'js/admin.js?v=2.3.3-3d5ea995';
+const ADMIN_JS = 'js/admin.js?v=2.3.4-151d9097';
 function muatAdmin() { if (!S._adm) S._adm = loadScript(ADMIN_JS).then(() => { if (!V['a-dash']) throw new Error('Modul admin tidak lengkap.'); S._admOK = true; }).catch(e => { S._adm = null; throw e; }); return S._adm; }
 function go(route, param, noPush) {
   if (isApp(route) && !S.me) { route = 'login'; param = null; }
