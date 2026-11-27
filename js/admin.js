@@ -1,4 +1,4 @@
-/* KRP Pro v2.3.4 — modul panitia (dimuat saat dibutuhkan). Dibuat otomatis oleh tools/build.js dari folder src/. Jangan diedit langsung. */
+/* KRP Pro v2.4.0 — modul panitia (dimuat saat dibutuhkan). Dibuat otomatis oleh tools/build.js dari folder src/. Jangan diedit langsung. */
 (function () {
 'use strict';
 const { $, $$, E, S, V, ACT, SUBMIT, INP, G_L, TIPE_L, FASE, FASE_L, pill, rupiah, fdt, jn, kls, evTitle, thumb, initials, rp, swr, bustCache, toast, modal, closeModal, ask, busy, ph, card, empty, kpi, alertx, field, inp, sel, form, viewFile, go, chart } = KRP;
@@ -310,7 +310,7 @@ function tOrg() {
 ${card('Penandatangan & nomor surat', `<div class="k-grid2">${kin('org.pimpinan', 'Nama pimpinan (penanda tangan)', { req: 1 })}${kin('org.jabatan', 'Jabatan', { ph: 'Ketua Umum' })}${kin('org.nip', 'NIP / NIK (opsional)')}${kin('org.tgl_surat', 'Tanggal surat', { type: 'date' })}${kin('org.no_surat', 'Nomor surat permohonan')}${kin('org.no_sk_panitia', 'Nomor SK panitia')}${kin('org.no_sk_juri', 'Nomor SK juri')}${kin('org.no_sk_pemenang', 'Nomor SK pemenang')}</div>
 <div class="kur-up">${['ttd', 'cap'].map(t => `<div class="kur-up-i"><b>${t === 'ttd' ? 'Tanda tangan pimpinan' : 'Cap / stempel lembaga'}</b><small class="mut">PNG latar transparan, maks 5 MB</small><span>${o[t + '_id'] ? '<span class="k-pill k-ok">Terunggah</span>' : '<span class="k-pill k-neu">Belum ada</span>'}</span><label class="k-btn sm k-outline"><i class="bi bi-upload"></i> ${o[t + '_id'] ? 'Ganti' : 'Unggah'}<input type="file" hidden accept="image/png,image/jpeg" data-chg="kur-img" data-t="${t}"></label>${o[t + '_id'] ? `<button type="button" class="k-btn sm k-ghostw" data-act="kur-img-del" data-t="${t}">Lepas</button>` : ''}</div>`).join('')}</div><p class="mut sm">Gambar dipakai di surat, SK, dan sertifikat. Tanpa gambar, berkas tetap bisa dicetak lalu ditandatangani basah dan dipindai.</p>`)}</div>
 <div>${card('Identitas ajang', `${kin('ajang.nama', 'Nama ajang', { req: 1 })}${kin('ajang.subjudul', 'Subjudul / edisi tema')}<div class="k-grid2">${kin('ajang.cabang', 'Cabang ajang')}${ksel('ajang.bidang', 'Bidang', ['Olahraga', 'Seni Budaya', 'Riset dan Inovasi'])}${ksel('ajang.bentuk', 'Bentuk', ['Kompetisi', 'Nonkompetisi'])}${ksel('ajang.tingkat', 'Tingkat yang diajukan', ['Kabupaten/Kota', 'Provinsi', 'Nasional', 'Internasional'], { hint: `Data peserta memenuhi tingkat <b>${E(st.tingkatSaran)}</b> (${st.nProv} provinsi, ${st.nKota} kab/kota).` })}${ksel('ajang.metode', 'Metode', ['Luring', 'Daring', 'Bauran'])}${ksel('ajang.frekuensi', 'Frekuensi', ['Tahunan', 'Semesteran', 'Triwulanan', 'Bulanan', 'Lainnya'])}${kin('ajang.tgl_mulai', 'Tanggal mulai', { type: 'date' })}${kin('ajang.tgl_selesai', 'Tanggal selesai', { type: 'date' })}${kin('ajang.edisi', 'Penyelenggaraan ke-', { type: 'number' })}${kin('ajang.tahun_awal', 'Tahun pertama digelar', { type: 'number' })}</div>${kin('ajang.tempat', 'Tempat pelaksanaan')}${kin('ajang.aturan', 'Acuan peraturan teknis')}${kta('ajang.tujuan', 'Tujuan ajang', { rows: 3 })}${kta('ajang.tahapan', 'Tahapan / sistem lomba', { rows: 2 })}`)}
-${card('Riwayat penyelenggaraan (keberlanjutan)', `<p class="mut sm">Edisi sebelumnya membuktikan konsistensi frekuensi. Musim berjalan ditambahkan otomatis.</p>${rows('riwayat', [['tahun', 'Tahun', '80px'], ['edisi', 'Ke-', '50px'], ['tempat', 'Tempat', '160px'], ['peserta', 'Peserta', '80px']], 'Belum ada riwayat.')}${(S.KS.arsip || []).length ? `<button type="button" class="k-btn sm k-ghostw" data-act="kur-arsip"><i class="bi bi-archive"></i> Isi dari arsip aplikasi (${S.KS.arsip.length})</button>` : ''}`)}</div></div>`;
+${card('Riwayat penyelenggaraan (keberlanjutan)', `<p class="mut sm">Edisi sebelumnya membuktikan konsistensi frekuensi. Musim berjalan ditambahkan otomatis.</p>${rows('riwayat', [['tahun', 'Tahun', '80px'], ['edisi', 'Ke-', '50px'], ['tempat', 'Tempat', '160px'], ['peserta', 'Peserta', '80px']], 'Belum ada riwayat.')}<button type="button" class="k-btn sm k-ghostw" data-act="kur-arsip"><i class="bi bi-journal-richtext"></i> Isi dari Portofolio</button> <a class="sm" href="#" data-go="a-porto">Kelola Portofolio</a>`)}</div></div>`;
 }
 function tPan() {
   return `${alertx('info', 'Prasyarat Instrumen 1A: ada <b>Panitia Pengarah</b> dan <b>Panitia Penyelenggara</b> dengan <b>Ketua, Sekretaris, Bendahara, dan Koordinator Lomba</b> yang dijabat <b>orang berbeda</b>, masing-masing dengan uraian tugas. Uraian tugas jabatan baku terisi otomatis bila dikosongkan.', 'bi-diagram-3')}
@@ -347,7 +347,15 @@ const BARU = { riwayat: { tahun: '', edisi: '', tempat: '', peserta: '' }, sc: {
 ACT['kur-add'] = a => { const k = a.dataset.key; (S.KUR[k] = S.KUR[k] || []).push(Object.assign({}, BARU[k])); redrawBody(); const L = $$(`[data-k^="${k}.${S.KUR[k].length - 1}."]`); if (L[0]) L[0].focus(); };
 ACT['kur-del'] = a => { S.KUR[a.dataset.key].splice(Number(a.dataset.i), 1); redrawBody(); jadwalSimpan(0); };
 ACT['kur-oc-baku'] = () => { const ada = new Set((S.KUR.oc || []).map(x => (x.jabatan || '').toLowerCase())); ['Ketua', 'Sekretaris', 'Bendahara', 'Koordinator Lomba', 'Seksi Pendaftaran', 'Seksi Acara', 'Seksi Publikasi', 'Seksi Dokumentasi', 'Seksi Perlengkapan', 'Seksi Kesehatan', 'Seksi IT'].forEach(j => { if (!ada.has(j.toLowerCase())) S.KUR.oc.push({ nama: '', jabatan: j, tugas: '' }); }); redrawBody(); toast('Susunan baku ditambahkan. Isi nama tiap jabatan.'); };
-ACT['kur-arsip'] = () => { const ada = new Set((S.KUR.riwayat || []).map(r => String(r.tahun))); S.KS.arsip.forEach(x => { if (!ada.has(String(x.tahun)) && String(x.tahun) !== String(S.KS.musim)) S.KUR.riwayat.push({ tahun: x.tahun, edisi: '', tempat: '', peserta: String(x.peserta || '') }); }); redrawBody(); jadwalSimpan(0); };
+// v2.4.0: riwayat penyelenggaraan diambil dari Portofolio (edisi yang tampil, kecuali musim yang sedang dikurasi), lengkap dengan edisi, tempat, dan peserta.
+ACT['kur-arsip'] = async a => {
+  busy(a, true); let L = [];
+  try { L = (await rp('pf.list', {})).data.edisi.filter(e => e.tampil && e.musim !== S.KS.musim); } catch (e) { L = (S.KS.arsip || []).map(x => ({ tahun: x.tahun, atlet: x.peserta })); }
+  busy(a, false);
+  const kunci = r => String(r.tahun) + '|' + String(r.tempat || '').toLowerCase(), ada = new Set((S.KUR.riwayat || []).map(kunci)); let n = 0;
+  L.slice().reverse().forEach(e => { const r = { tahun: String(e.tahun || e.musim || ''), edisi: String(e.edisi || ''), tempat: String(e.lokasi || ''), peserta: e.atlet ? String(e.atlet) : '' }; if (!r.tahun || ada.has(kunci(r)) || (S.KUR.riwayat || []).some(x => String(x.tahun) === r.tahun && !x.tempat)) return; S.KUR.riwayat.push(r); ada.add(kunci(r)); n++; });
+  toast(n ? n + ' edisi ditambahkan dari Portofolio.' : 'Semua edisi di Portofolio sudah ada di riwayat.'); redrawBody(); jadwalSimpan(0);
+};
 function jadwalSimpan(ms) { clearTimeout(S._kurT); const sv = $('#kur-sv'); if (sv) sv.textContent = 'Menyimpan…'; S._kurP = new Promise(res => { S._kurT = setTimeout(() => simpan().then(res, res), ms == null ? 1200 : ms); }); }
 async function simpan() {
   try { const r = await rp('kur.simpan', { musim: S.KS.musim, data: S.KUR }); S.KS.siap = r.data.siap; const sv = $('#kur-sv'); if (sv) sv.textContent = 'Tersimpan ' + new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }); const k = $('#kur-skor'), b = $('#kur-bar'); if (k) k.textContent = r.data.siap.skor + '%'; if (b) b.style.width = r.data.siap.skor + '%'; if (S.ktab === 'siap') redrawBody(); }
@@ -1897,5 +1905,97 @@ INP['bs-file'] = async i => {
     const r = await rp('bs.rekor', { data, sumber: fs.map(f => f.name).join(', ') }); toast(r.message); segar();
   } catch (e) { toast(e.message, 'err'); }
   i.value = '';
+};
+})();
+
+(function () {
+'use strict';
+/* ===== Portofolio kejuaraan (Super Admin, v2.4.0)
+   Daftar semua edisi: otomatis dari hasil web & arsip hasil yang diunggah, plus edisi manual. Super Admin melengkapi identitas,
+   angka, juara umum, ringkasan, foto, tautan, dan riwayat kurasi Puspresnas; mengatur edisi mana yang tampil di halaman Riwayat. ===== */
+const { $, $$, E, S, V, ACT, SUBMIT, INP, rp, swr, toast, busy, ph, card, alertx, empty, ask, bustCache, form, go, modal, closeModal, field, inp, sel, fdt, thumb, kpi } = KRP;
+const main = h => { $('#main').innerHTML = h; };
+const angka = n => Number(n || 0).toLocaleString('id-ID');
+const SUMBER = { IMPOR: ['bi-file-earmark-arrow-up', 'Dari hasil yang diunggah'], WEB: ['bi-globe', 'Dari hasil web'], EVENT: ['bi-calendar-event', 'Dari data event'], MANUAL: ['bi-pencil', 'Edisi manual'] };
+const STL = { DRAF: ['k-warn', 'Arsip belum difinalkan'], BERLANGSUNG: ['k-warn', 'Edisi berjalan'], AKAN_DATANG: ['k-neu', 'Akan datang'], SELESAI: ['k-ok', 'Selesai'] };
+const bintang = p => { const n = Number(p) || 0; return n ? `<span class="pf-star">${'★'.repeat(n)}<i>${'★'.repeat(5 - n)}</i></span>` : ''; };
+const kurChip = e => e.kur.st === 'TERKURASI' ? `<span class="pf-kur sm">${bintang(e.kur.pred)}<span>${e.kur.pred === '0' ? 'Terkurasi' : 'Bintang ' + e.kur.pred}${e.kur.thn ? ' · ' + E(e.kur.thn) : ''}</span></span>` : e.kur.st === 'DIAJUKAN' ? '<span class="k-pill k-neu">Sedang dikurasi</span>' : e.kur.st === 'TIDAK' ? '<span class="k-pill k-err">Tidak lolos kurasi</span>' : '<span class="mut sm">Belum diajukan</span>';
+const drive = id => 'https://drive.google.com/file/d/' + encodeURIComponent(id) + '/view';
+
+V['a-porto'] = function () {
+  swr('porto-adm', 'pf.list', {}, d => { S.PF = d; draw(); }, 5000);
+};
+function draw() {
+  if (S.route !== 'a-porto' || !S.PF) return;
+  const d = S.PF, L = d.edisi, tampil = L.filter(e => e.tampil), draf = L.filter(e => e.status === 'DRAF');
+  main(`<div class="k-wrap pad">${ph('Portofolio Kejuaraan', 'Riwayat setiap edisi untuk halaman publik <b>Riwayat</b> dan berkas kurasi. Edisi dari hasil web atau hasil yang diunggah masuk otomatis; lengkapi, sembunyikan, atau tambah edisi lama secara manual.', `<button class="k-btn k-outline" data-go="riwayat"><i class="bi bi-box-arrow-up-right"></i> Lihat halaman publik</button><button class="k-btn k-navy" data-act="pf-baru"><i class="bi bi-plus-lg"></i> Tambah edisi manual</button>`)}
+<div class="k-kpis pf-kp">${kpi('Edisi tampil', tampil.length + ' / ' + L.length, 'bi-journal-richtext')}${kpi('Partisipasi atlet', angka(tampil.reduce((s, e) => s + (Number(e.atlet) || 0), 0)), 'bi-people', 'edisi yang tampil')}${kpi('Terkurasi Puspresnas', L.filter(e => e.kur.st === 'TERKURASI').length, 'bi-patch-check')}${kpi('Menunggu finalisasi', draf.length, 'bi-hourglass-split', 'arsip hasil yang diunggah')}</div>
+${draf.length ? alertx('warn', `Arsip hasil yang diunggah belum difinalkan: <b>${draf.map(e => E(e.musim)).join(', ')}</b>. Finalkan di <a href="#" data-go="a-impor">Impor Hasil Lama</a> agar tampil di Riwayat dan Arsip publik, atau tampilkan langsung dengan sakelar di bawah.`, 'bi-hourglass-split') : ''}
+${L.length ? `<div class="pf-adm">${L.map(baris).join('')}</div>` : empty('bi-journal-richtext', 'Belum ada edisi. Unggah hasil lama di Impor Hasil Lama atau tambah edisi manual.')}
+<p class="mut sm">Angka, juara umum, Best Swimmer, rekor, dan buku hasil diambil otomatis dan ikut berubah bila data hasil berubah. Isian Anda menimpa nilai otomatis; kosongkan isian untuk kembali ke nilai otomatis.</p></div>`);
+}
+function baris(e) {
+  const s = SUMBER[e.manual ? 'MANUAL' : e.sumber] || SUMBER.EVENT, st = STL[e.status];
+  return `<div class="pf-ar${e.tampil ? '' : ' off'}">
+<div class="pf-ar-img">${e.foto ? `<img src="${thumb(e.foto, 240)}" alt="" loading="lazy">` : `<span><b>${e.tahun || '–'}</b></span>`}</div>
+<div class="pf-ar-main"><b class="pf-ar-t">${E(e.judul || '(tanpa nama)')}</b><div class="pf-ar-sub"><span><i class="bi ${s[0]}"></i> ${s[1]}${e.musim ? ' · ' + E(e.musim) : ''}</span>${e.tglTeks ? `<span><i class="bi bi-calendar3"></i> ${E(e.tglTeks)}</span>` : ''}${e.lokasi ? `<span><i class="bi bi-geo-alt"></i> ${E(e.lokasi)}</span>` : ''}</div>
+<div class="pf-ar-sub"><span><b>${angka(e.atlet)}</b> atlet</span><span><b>${angka(e.sekolah)}</b> sekolah/klub</span><span><b>${angka(e.nomor)}</b> nomor</span>${e.juara ? `<span><i class="bi bi-trophy"></i> ${E(e.juara)}</span>` : ''}${st && e.status !== 'SELESAI' ? `<span class="k-pill ${st[0]}">${st[1]}</span>` : ''}${e.ubah ? '<span class="k-pill k-neu">Diubah</span>' : ''}</div>
+<div class="pf-ar-sub">${kurChip(e)}</div></div>
+<div class="pf-ar-act"><label class="pf-sw" title="Tampilkan di halaman Riwayat"><input type="checkbox" data-chg="pf-tampil" data-k="${E(e.k)}" ${e.tampil ? 'checked' : ''}><span></span><small>${e.tampil ? 'Tampil' : 'Tersembunyi'}</small></label>
+<button class="k-btn sm k-outline" data-act="pf-ubah" data-k="${E(e.k)}"><i class="bi bi-pencil"></i> Ubah</button>${e.manual ? `<button class="k-btn sm k-ghostw" data-act="pf-hapus" data-k="${E(e.k)}" title="Hapus edisi manual"><i class="bi bi-trash"></i></button>` : e.ubah ? `<button class="k-btn sm k-ghostw" data-act="pf-hapus" data-k="${E(e.k)}" title="Kembalikan ke data otomatis"><i class="bi bi-arrow-counterclockwise"></i></button>` : ''}</div></div>`;
+}
+const ph0 = (v, a) => v !== undefined && v !== '' && v !== null ? 'Otomatis: ' + v : a || '';
+function formEdisi(e) {
+  const baru = !e, x = e || { k: '', manual: true, auto: {}, kur: { st: 'BELUM' }, tautan: [], tampil: true }, A = x.auto || {}, man = baru || x.manual, d = S.PF;
+  const v = f => { const s = (x._isi || {})[f]; return s == null ? '' : s; }; // isian tersimpan saja: kolom kosong = pakai data otomatis
+  const T = (x.tautan || []).concat([{}, {}, {}, {}]).slice(0, 4), K = x.kur || {};
+  const fotoDz = `<div class="k-dz" data-dz="pf-foto"><label><i class="bi bi-image"></i><b>${x.foto ? 'Ganti foto sampul' : 'Foto sampul'}</b><small class="dzn">JPG/PNG, otomatis diperkecil</small><input type="file" hidden data-file="pf-foto" data-img="1" accept="image/jpeg,image/png,image/webp"></label></div>`;
+  return `<form data-submit="pf-simpan" class="pf-form"><input type="hidden" name="k" value="${E(x.k)}">
+${man ? '' : alertx('info', `Edisi otomatis dari <b>${E(x.musim)}</b>. Kolom yang dikosongkan memakai data otomatis (lihat teks samar di tiap kolom).`)}
+<h4 class="pf-h">Identitas edisi</h4><div class="g2">${field('Nama edisi', inp('judul', v('judul'), { req: man, max: 120, ph: man ? 'mis. Kejuaraan Renang Pelajar 2023' : ph0(A.judul) }), man)}${field('Edisi ke-', inp('edisi', x.edisi || '', { max: 10, ph: 'mis. 3' }))}
+${field('Tanggal mulai', inp('tgl_mulai', v('tgl_mulai'), { type: 'date', ph: ph0(A.tgl_mulai) }), 0, man ? 'Dipakai untuk urutan riwayat.' : ph0(A.tgl_mulai, 'Otomatis: –'))}${field('Tanggal selesai', inp('tgl_selesai', v('tgl_selesai'), { type: 'date' }), 0, man ? '' : ph0(A.tgl_selesai, ''))}
+${field('Lokasi', inp('lokasi', v('lokasi'), { max: 160, ph: ph0(A.lokasi, 'mis. Kolam Renang Senayan, Jakarta') }))}${field('Penyelenggara', inp('penyelenggara', v('penyelenggara'), { max: 120, ph: ph0(A.penyelenggara) }))}
+${field('Tingkat', sel('tingkat', [['', man ? '–' : 'Otomatis' + (A.tingkat ? ': ' + A.tingkat : '')]].concat(d.tingkat.map(t => [t, t])), v('tingkat')))}${field('Kolam', sel('kolam', [['', man ? '–' : 'Otomatis' + (A.kolam ? ': ' + (A.kolam === 'SCM' ? '25 m' : '50 m') : '')], ['LCM', 'Long course · 50 m'], ['SCM', 'Short course · 25 m']], v('kolam')))}</div>
+<h4 class="pf-h">Angka & juara</h4><div class="pf-g4">${field('Atlet', inp('atlet', v('atlet'), { type: 'number', attr: 'min="0" step="1"', ph: ph0(A.atlet) }))}${field('Sekolah/klub', inp('sekolah', v('sekolah'), { type: 'number', attr: 'min="0" step="1"', ph: ph0(A.sekolah) }))}${field('Nomor lomba', inp('nomor', v('nomor'), { type: 'number', attr: 'min="0" step="1"', ph: ph0(A.nomor) }))}${field('Juara umum', inp('juara', v('juara'), { max: 120, ph: ph0(A.juara, 'Nama sekolah') }))}</div>
+${field('Ringkasan', `<textarea class="k-in" name="ringkas" rows="3" maxlength="800" placeholder="Sorotan edisi ini: jumlah peserta, sekolah juara, rekor baru, tamu kehormatan…">${E(x.ringkas || '')}</textarea>`)}
+<h4 class="pf-h">Foto & tautan</h4><div class="pf-foto">${x.foto ? `<img src="${thumb(x.foto, 400)}" alt=""><label class="k-ev"><label><input type="checkbox" name="hapusFoto"> <span>Hapus foto</span></label></label>` : ''}${fotoDz}</div>
+<div class="pf-links">${T.map((l, i) => `<div class="g2">${field('Judul tautan ' + (i + 1), inp('tj' + i, l.j || '', { max: 60, ph: ['Video siaran', 'Berita', 'Album foto', 'Media sosial'][i] }))}${field('Alamat (https://…)', inp('tu' + i, l.u || '', { type: 'url', max: 400, ph: 'https://' }))}</div>`).join('')}</div>
+<h4 class="pf-h">Kurasi Puspresnas</h4><div class="g2">${field('Status kurasi', sel('kst', Object.keys(d.kur).map(k => [k, d.kur[k]]), K.st || 'BELUM', 'data-chg="pf-kst"'))}${field('Predikat', sel('kpred', [['', '–']].concat(['5', '4', '3', '2', '1', '0'].map(p => [p, d.pred[p]])), K.pred || ''), 0, 'Wajib bila status Terkurasi.')}
+${field('Tahun kurasi', inp('kthn', K.thn || '', { max: 4, ph: 'mis. 2026', attr: 'inputmode="numeric" pattern="(19|20)[0-9]{2}"' }))}${field('Nomor SK / surat hasil kurasi', inp('ksk', K.sk || '', { max: 120 }))}
+${field('Tautan bukti (opsional)', inp('kurl', K.url || '', { type: 'url', max: 400, ph: 'https://' }))}<div>${K.file ? `<p class="sm" style="margin:0 0 6px"><a href="${drive(K.file)}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-check"></i> Sertifikat/SK tersimpan</a> · <label><input type="checkbox" name="hapusSert"> hapus</label></p>` : ''}${KRP.dz('pf-sert', K.file ? 'Ganti sertifikat/SK' : 'Sertifikat/SK kurasi', 'PDF atau foto, maks 5 MB')}</div></div>
+<label class="k-ev"><label><input type="checkbox" name="tampil" data-awal="${x.tampil ? 1 : 0}" ${x.tampil ? 'checked' : ''}> <span>Tampilkan di halaman Riwayat (portal publik)</span></label></label>
+<div class="k-bar"><button type="button" class="k-btn k-ghostw" data-act="mx">Batal</button><button class="k-btn k-navy">Simpan</button></div></form>`;
+}
+function bukaForm(e) {
+  S.files = {}; modal(e ? 'Ubah edisi: ' + E(e.judul || '') : 'Tambah edisi manual', formEdisi(e), '', true);
+  pfKst();
+}
+function pfKst() { const f = $('#modal form[data-submit="pf-simpan"]'); if (!f) return; const t = f.elements.kst.value === 'TERKURASI'; f.elements.kpred.disabled = !t; f.elements.kpred.required = t; }
+INP['pf-kst'] = pfKst;
+ACT['pf-baru'] = () => bukaForm(null);
+// Isian tersimpan Super Admin (bukan nilai gabungan) agar kolom kosong tetap berarti "pakai otomatis".
+ACT['pf-ubah'] = a => {
+  const e = (S.PF.edisi || []).filter(x => x.k === a.dataset.k)[0]; if (!e) return;
+  bukaForm(Object.assign({}, e, { _isi: e.isi || {} }));
+};
+SUBMIT['pf-simpan'] = async f => {
+  const b = $('button.k-navy', f), x = form(f), baru = !x.k;
+  const data = { judul: x.judul, edisi: x.edisi, tgl_mulai: x.tgl_mulai, tgl_selesai: x.tgl_selesai, lokasi: x.lokasi, penyelenggara: x.penyelenggara, tingkat: x.tingkat, kolam: x.kolam, atlet: x.atlet, sekolah: x.sekolah, nomor: x.nomor, juara: x.juara, ringkas: x.ringkas, tampil: baru || String(+!!x.tampil) !== f.elements.tampil.dataset.awal ? !!x.tampil : undefined,
+    tautan: [0, 1, 2, 3].map(i => ({ j: x['tj' + i], u: (x['tu' + i] || '').trim() })).filter(l => l.u), kur: { st: x.kst, pred: x.kpred || '', thn: x.kthn, sk: x.ksk, url: (x.kurl || '').trim() } };
+  busy(b, true);
+  try {
+    const r = await rp('pf.simpan', { k: x.k, data, foto: S.files['pf-foto'] || null, sert: S.files['pf-sert'] || null, hapusFoto: !!x.hapusFoto, hapusSert: !!x.hapusSert });
+    toast(r.message); closeModal(); bustCache('porto'); await muatUlang();
+  } catch (e) { toast(e.message, 'err'); busy(b, false); }
+};
+async function muatUlang() { try { const r = await rp('pf.list', {}); S.PF = r.data; draw(); } catch (e) { toast(e.message, 'err'); } bustCache('porto-adm'); }
+INP['pf-tampil'] = async i => {
+  const on = i.checked; i.disabled = true;
+  try { const r = await rp('pf.tampil', { k: i.dataset.k, tampil: on }); toast(r.message); bustCache('porto'); await muatUlang(); } catch (e) { i.checked = !on; i.disabled = false; toast(e.message, 'err'); }
+};
+ACT['pf-hapus'] = async a => {
+  const e = (S.PF.edisi || []).filter(x => x.k === a.dataset.k)[0]; if (!e) return;
+  if (!await ask(e.manual ? `Hapus edisi manual <b>${E(e.judul)}</b> beserta foto & sertifikatnya?` : `Hapus semua isian Anda untuk <b>${E(e.judul)}</b>? Edisi tetap ada dan kembali memakai data otomatis (foto, tautan, dan data kurasi ikut terhapus).`, e.manual ? 'Hapus edisi' : 'Kembalikan', true)) return;
+  try { const r = await rp('pf.hapus', { k: e.k }); toast(r.message); bustCache('porto'); await muatUlang(); } catch (x) { toast(x.message, 'err'); }
 };
 })();

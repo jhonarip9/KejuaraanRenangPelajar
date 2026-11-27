@@ -1,4 +1,4 @@
-/* KRP Pro v2.3.4 — modul publik & akun pendaftar. Dibuat otomatis oleh tools/build.js dari folder src/. Jangan diedit langsung. */
+/* KRP Pro v2.4.0 — modul publik & akun pendaftar. Dibuat otomatis oleh tools/build.js dari folder src/. Jangan diedit langsung. */
 (function () {
 'use strict';
 /* ===== Dasar ===== */
@@ -52,7 +52,7 @@ function rp(action, data, n) {
 const KCFG = window.KRP_CONFIG || {};
 const GAS_URL = String(KCFG.GAS_URL || '').trim();
 const API_SIAP = /^https:\/\/script\.google\.com\/(a\/[^/]+\/)?macros\/s\/[A-Za-z0-9_-]{20,}\/exec$/.test(GAS_URL) && !/GANTI|XXXX/.test(GAS_URL);
-const API_TULIS = new Set(["a.kontak","ars.run","auth.daftar","bs.cabut","bs.kirim","bs.mode","bs.rekor","cfg.simpan","dok.buat","dok.logo.set","dok.logo.up","dok.publik","ev.aktifkan","ev.daftar","ev.demo","ev.demo.hapus","ev.hapus","ev.kel","ev.nomor.gen","ev.nomor.hapus","ev.nomor.massal","ev.nomor.rapikan","ev.nomor.simpan","ev.preset","ev.reset","ev.reset.pedoman","ev.simpan","ev.status","fase.set","fase.tarik","fase.terbit","gal.del","gal.link","gal.up","h.sahkan","h.simpan","h.tarik","imp.final","imp.hapus","imp.kolam","imp.rekor","imp.simpan","jd.buka","jd.final","jd.set","jd.susun","kur.img","kur.simpan","m.atlet","m.daftarnomor","m.klaim","m.klaim.batal","m.pengajuan","m.perbaiki","man.simpan","me.sandi","mig.run","mst.default","mst.hapus","mst.simpan","p.aksi","s.run","sa.akun.hapus","sa.akun.sandi","sa.akun.status","sa.atlet.ubah","sa.entri.hapus","sa.entri.tambah","sa.entri.ubah","sa.klaim.aksi","sb.paket","sb.pindah","sys.darurat","sys.keluarsemua","sys.rollover","usr.hapus","usr.reset","usr.simpan","v.aksi"]);
+const API_TULIS = new Set(["a.kontak","ars.run","auth.daftar","bs.cabut","bs.kirim","bs.mode","bs.rekor","cfg.simpan","dok.buat","dok.logo.set","dok.logo.up","dok.publik","ev.aktifkan","ev.daftar","ev.demo","ev.demo.hapus","ev.hapus","ev.kel","ev.nomor.gen","ev.nomor.hapus","ev.nomor.massal","ev.nomor.rapikan","ev.nomor.simpan","ev.preset","ev.reset","ev.reset.pedoman","ev.simpan","ev.status","fase.set","fase.tarik","fase.terbit","gal.del","gal.link","gal.up","h.sahkan","h.simpan","h.tarik","imp.final","imp.hapus","imp.kolam","imp.rekor","imp.simpan","jd.buka","jd.final","jd.set","jd.susun","kur.img","kur.simpan","m.atlet","m.daftarnomor","m.klaim","m.klaim.batal","m.pengajuan","m.perbaiki","man.simpan","me.sandi","mig.run","mst.default","mst.hapus","mst.simpan","p.aksi","pf.hapus","pf.simpan","pf.tampil","s.run","sa.akun.hapus","sa.akun.sandi","sa.akun.status","sa.atlet.ubah","sa.entri.hapus","sa.entri.tambah","sa.entri.ubah","sa.klaim.aksi","sb.paket","sb.pindah","sys.darurat","sys.keluarsemua","sys.rollover","usr.hapus","usr.reset","usr.simpan","v.aksi"]);
 const Perf = { log: [], add(o) { this.log.push(o); if (this.log.length > 60) this.log.shift(); }, rata() { const L = this.log.filter(x => x.ok); if (!L.length) return null; const t = L.reduce((s, x) => s + x.total, 0) / L.length, m = L.reduce((s, x) => s + (x.server || 0), 0) / L.length; return { n: L.length, total: Math.round(t), server: Math.round(m), net: Math.round(t - m) }; } };
 let _epoch = 0, _antre = [], _antreT = 0; const _inflight = {};
 const reqId = () => { try { const a = new Uint8Array(12); crypto.getRandomValues(a); return Array.from(a, b => b.toString(36).padStart(2, '0')).join('').slice(0, 20); } catch (e) { return Date.now().toString(36) + Math.random().toString(36).slice(2, 12); } };
@@ -241,16 +241,16 @@ function chart(id, cfg) { const c = document.getElementById(id); if (!c) return;
 function clearTimers() { S.timers.forEach(clearInterval); S.timers = []; }
 
 /* ===== Router & shell ===== */
-const NAV_PUB = [['home', 'Beranda', 'bi-house'], ['info', 'Info Lomba', 'bi-info-circle'], ['jadwal', 'Jadwal & Start List', 'bi-calendar3'], ['live', 'Hasil Live', 'bi-broadcast'], ['klas', 'Klasemen', 'bi-trophy'], ['rekor', 'Rekor', 'bi-stopwatch'], ['atlet', 'Atlet', 'bi-people'], ['galeri', 'Galeri', 'bi-images'], ['arsip', 'Arsip', 'bi-archive']];
+const NAV_PUB = [['home', 'Beranda', 'bi-house'], ['info', 'Info Lomba', 'bi-info-circle'], ['jadwal', 'Jadwal & Start List', 'bi-calendar3'], ['live', 'Hasil Live', 'bi-broadcast'], ['klas', 'Klasemen', 'bi-trophy'], ['rekor', 'Rekor', 'bi-stopwatch'], ['atlet', 'Atlet', 'bi-people'], ['galeri', 'Galeri', 'bi-images'], ['riwayat', 'Riwayat', 'bi-journal-richtext']];
 const NAV_APP = {
-  SUPER_ADMIN: [['a-dash', 'Dashboard', 'bi-speedometer2'], ['a-panduan', 'Panduan Event', 'bi-compass'], ['a-event', 'Event & Nomor Lomba', 'bi-calendar-event'], ['a-fase', 'Tahapan Event', 'bi-signpost-split'], ['a-verif', 'Verifikasi', 'bi-patch-check'], ['a-manual', 'Pendaftaran Manual', 'bi-person-plus'], ['a-png', 'Pengajuan', 'bi-arrow-left-right'], ['a-klaim', 'Klaim Prestasi', 'bi-award'], ['a-akun', 'Akun & Berkas', 'bi-person-vcard'], ['a-nomor', 'Nomor Peserta', 'bi-list-check'], ['a-jadwal', 'Jadwal Acara', 'bi-clock-history'], ['a-hasil', 'Input Hasil', 'bi-pencil-square'], ['a-wasit', 'Pengesahan Wasit', 'bi-pen'], ['a-best', 'Best Swimmer', 'bi-trophy'], ['a-impor', 'Impor Hasil Lama', 'bi-file-earmark-arrow-up'], ['a-dok', 'Dokumen & Logo', 'bi-file-earmark-pdf'], ['a-kurasi', 'Kurasi Puspresnas', 'bi-award'], ['a-gal', 'Dokumentasi', 'bi-camera'], ['a-lap', 'Laporan & Excel', 'bi-file-earmark-spreadsheet'], ['a-cfg', 'Pengaturan Web', 'bi-gear'], ['a-usr', 'Pengguna', 'bi-person-gear'], ['a-aud', 'Log Audit', 'bi-journal-text'], ['a-ars', 'Tutup Event & Arsip', 'bi-archive'], ['a-sistem', 'Sistem & Migrasi', 'bi-hdd-network']],
+  SUPER_ADMIN: [['a-dash', 'Dashboard', 'bi-speedometer2'], ['a-panduan', 'Panduan Event', 'bi-compass'], ['a-event', 'Event & Nomor Lomba', 'bi-calendar-event'], ['a-fase', 'Tahapan Event', 'bi-signpost-split'], ['a-verif', 'Verifikasi', 'bi-patch-check'], ['a-manual', 'Pendaftaran Manual', 'bi-person-plus'], ['a-png', 'Pengajuan', 'bi-arrow-left-right'], ['a-klaim', 'Klaim Prestasi', 'bi-award'], ['a-akun', 'Akun & Berkas', 'bi-person-vcard'], ['a-nomor', 'Nomor Peserta', 'bi-list-check'], ['a-jadwal', 'Jadwal Acara', 'bi-clock-history'], ['a-hasil', 'Input Hasil', 'bi-pencil-square'], ['a-wasit', 'Pengesahan Wasit', 'bi-pen'], ['a-best', 'Best Swimmer', 'bi-trophy'], ['a-impor', 'Impor Hasil Lama', 'bi-file-earmark-arrow-up'], ['a-dok', 'Dokumen & Logo', 'bi-file-earmark-pdf'], ['a-kurasi', 'Kurasi Puspresnas', 'bi-award'], ['a-porto', 'Portofolio', 'bi-journal-richtext'], ['a-gal', 'Dokumentasi', 'bi-camera'], ['a-lap', 'Laporan & Excel', 'bi-file-earmark-spreadsheet'], ['a-cfg', 'Pengaturan Web', 'bi-gear'], ['a-usr', 'Pengguna', 'bi-person-gear'], ['a-aud', 'Log Audit', 'bi-journal-text'], ['a-ars', 'Tutup Event & Arsip', 'bi-archive'], ['a-sistem', 'Sistem & Migrasi', 'bi-hdd-network']],
   VERIFIKATOR: [['a-dash', 'Dashboard', 'bi-speedometer2'], ['a-verif', 'Verifikasi', 'bi-patch-check'], ['a-png', 'Pengajuan', 'bi-arrow-left-right'], ['a-klaim', 'Klaim Prestasi', 'bi-award'], ['a-lap', 'Laporan', 'bi-bar-chart']],
   OPERATOR_LAPANGAN: [['a-hasil', 'Input Hasil', 'bi-pencil-square'], ['a-gal', 'Dokumentasi', 'bi-camera']],
   WASIT_UTAMA: [['a-wasit', 'Pengesahan Wasit', 'bi-pen']],
   KONTINGEN: [['m-dash', 'Beranda Akun', 'bi-house'], ['m-nomor', 'Daftar Nomor Lomba', 'bi-plus-circle'], ['m-baru', 'Tambah Atlet Baru', 'bi-person-plus'], ['m-png', 'Pengajuan Perubahan', 'bi-arrow-left-right'], ['m-akun', 'Akun Saya', 'bi-person-circle']]
 };
 const isApp = r => /^[am]-/.test(r);
-const ADMIN_JS = 'js/admin.js?v=2.3.4-151d9097';
+const ADMIN_JS = 'js/admin.js?v=2.4.0-ca941d9a';
 function muatAdmin() { if (!S._adm) S._adm = loadScript(ADMIN_JS).then(() => { if (!V['a-dash']) throw new Error('Modul admin tidak lengkap.'); S._admOK = true; }).catch(e => { S._adm = null; throw e; }); return S._adm; }
 function go(route, param, noPush) {
   if (isApp(route) && !S.me) { route = 'login'; param = null; }
@@ -276,7 +276,7 @@ function shell() {
     $('#pubbar').innerHTML = `${c.banner_teks ? `<div class="k-banner">${E(c.banner_teks)}</div>` : ''}<div class="k-wrap tb">${brand}<nav class="k-nav">${NAV_PUB.map(n => `<a class="k-nl${S.route === n[0] ? ' on' : ''}" href="#" data-go="${n[0]}">${n[1]}</a>`).join('')}</nav><div class="tb-r">${th}${S.me ? `<button class="k-btn k-orange sm" data-go="${S.me.role === 'KONTINGEN' ? 'm-dash' : NAV_APP[S.me.role][0][0]}"><i class="bi bi-grid"></i> Panel</button>` : `<button class="k-btn k-outline sm" style="color:#fff;border-color:rgba(255,255,255,.5)" data-go="login">Masuk</button><button class="k-btn k-orange sm" data-go="daftar">Daftar Akun</button>`}</div></div>${c.teks_berjalan ? `<div class="k-ticker"><div><span>${E(c.teks_berjalan)}</span><span>${E(c.teks_berjalan)}</span></div></div>` : ''}`;
     $('#bnav').innerHTML = [['home', 'Beranda', 'bi-house'], ['jadwal', 'Jadwal', 'bi-calendar3'], ['live', 'Live', 'bi-broadcast'], ['PENDAFTARAN', 'VERIFIKASI'].indexOf(c.fase || 'PENDAFTARAN') >= 0 ? ['info', 'Info', 'bi-info-circle'] : ['klas', 'Klasemen', 'bi-trophy'], [S.me ? (S.me.role === 'KONTINGEN' ? 'm-dash' : NAV_APP[S.me.role][0][0]) : 'login', S.me ? 'Panel' : 'Masuk', S.me ? 'bi-grid' : 'bi-box-arrow-in-right']].map(n => `<a href="#" data-go="${n[0]}" class="${S.route === n[0] ? 'on' : ''}"><i class="bi ${n[2]}"></i>${n[1]}</a>`).join('');
     const sm = [['ig1', 'bi-instagram'], ['ig2', 'bi-instagram'], ['yt1', 'bi-youtube'], ['yt2', 'bi-youtube']].filter(x => c[x[0]]);
-    $('#foot').innerHTML = `<div class="k-wrap"><div class="fg"><div>${brand}<p>${E(c.tagline || '')}</p></div><div><h4>Navigasi</h4>${NAV_PUB.slice(0, 5).map(n => `<a href="#" data-go="${n[0]}">${n[1]}</a>`).join('')}</div><div><h4>Ikuti Kami</h4>${sm.map(x => `<a href="${E(c[x[0]])}" target="_blank" rel="noopener"><i class="bi ${x[1]}"></i> ${E(handle(c[x[0]]))}</a>`).join('')}</div><div><h4>Kontak</h4>${c.kontak_email ? `<span><i class="bi bi-envelope"></i> ${E(c.kontak_email)}</span>` : ''}${c.kontak_telp ? `<span><i class="bi bi-telephone"></i> ${E(c.kontak_telp)}</span>` : ''}<span><i class="bi bi-geo-alt"></i> ${E(c.lokasi || '')}</span></div></div>${(B.logos || []).length ? `<div class="wlogos">${B.logos.map(l => `<img src="${logoUrl(l.id)}" alt="${E(l.nama)}" title="${E(l.nama)}" loading="lazy">`).join('')}</div>` : ''}<div class="fb"><span>© ${new Date().getFullYear()} ${E(name)}</span></div></div>`;
+    $('#foot').innerHTML = `<div class="k-wrap"><div class="fg"><div>${brand}<p>${E(c.tagline || '')}</p></div><div><h4>Navigasi</h4>${NAV_PUB.map(n => `<a href="#" data-go="${n[0]}">${n[1]}</a>`).join('')}</div><div><h4>Ikuti Kami</h4>${sm.map(x => `<a href="${E(c[x[0]])}" target="_blank" rel="noopener"><i class="bi ${x[1]}"></i> ${E(handle(c[x[0]]))}</a>`).join('')}</div><div><h4>Kontak</h4>${c.kontak_email ? `<span><i class="bi bi-envelope"></i> ${E(c.kontak_email)}</span>` : ''}${c.kontak_telp ? `<span><i class="bi bi-telephone"></i> ${E(c.kontak_telp)}</span>` : ''}<span><i class="bi bi-geo-alt"></i> ${E(c.lokasi || '')}</span></div></div>${(B.logos || []).length ? `<div class="wlogos">${B.logos.map(l => `<img src="${logoUrl(l.id)}" alt="${E(l.nama)}" title="${E(l.nama)}" loading="lazy">`).join('')}</div>` : ''}<div class="fb"><span>© ${new Date().getFullYear()} ${E(name)}</span></div></div>`;
   } else {
     const nav = NAV_APP[S.me.role] || [];
     $('#side').innerHTML = `<div class="brand sb">${brandImg}<span><b>${E(name)}</b><small>${E(ROLE_L[S.me.role])}</small></span></div><nav>${nav.map(n => `<a class="sl${S.route === n[0] || (S.route === 'm-atlet' && n[0] === 'm-dash') || (S.route === 'a-evform' && n[0] === 'a-event') ? ' on' : ''}" href="#" data-go="${n[0]}"><i class="bi ${n[2]}"></i>${n[1]}</a>`).join('')}</nav><a class="sl" href="#" data-go="home"><i class="bi bi-globe"></i>Lihat Portal Publik</a>${S.me.role !== 'KONTINGEN' && !S.me.darurat && S.me.id !== 'darurat' ? '<a class="sl" href="#" data-act="sandi-saya"><i class="bi bi-key"></i>Ganti kata sandi</a>' : ''}<a class="sl" href="#" data-act="logout"><i class="bi bi-box-arrow-left"></i>Keluar</a>`;
@@ -529,13 +529,13 @@ V.arsip = function (musim) { S.arsK = ''; S.arsQ = '';
     const m = d.meta || {}, kt = (judul, L, kol) => card(judul, L.length ? `<table class="k-table"><thead><tr><th>#</th><th>${kol}</th><th>🥇</th><th>🥈</th><th>🥉</th><th>Poin</th></tr></thead><tbody>${L.slice(0, 15).map((x, i) => `<tr><td>${i + 1}</td><td>${E(x.nama)}</td><td>${x.e}</td><td>${x.p}</td><td>${x.b}</td><td class="mono"><b>${x.poin}</b></td></tr>`).join('')}</tbody></table>` : '<p class="mut">Tidak ada data.</p>', '', true);
     const baris = r => `<tr><td>${r.rank || '–'}</td><td><b>${E(r.nama)}</b>${r.kelas !== '' && r.kelas != null ? ` <small class="mut">kls ${E(kls(r.kelas))}</small>` : ''}</td><td>${E([r.sk, r.kl].filter(Boolean).join(' / '))}</td><td class="mono">${E(r.st === 'OK' ? r.waktu : r.st)}</td><td>${r.medal ? `<span class="k-pill k-warn">${E(r.medal)}</span>` : ''}${r.baru ? ' <span class="k-pill k-ok">Rekor</span>' : ''}${r.cat ? ` <small class="mut">${E(r.cat)}</small>` : ''}</td></tr>`;
     const thd = '<thead><tr><th>Rank</th><th>Nama</th><th>Asal</th><th>Waktu</th><th></th></tr></thead>';
-    main(`<div class="k-wrap pad"><button class="k-btn k-ghostw sm" data-go="arsip"><i class="bi bi-arrow-left"></i> Semua arsip</button>${ph(E(m.event || ('Arsip Musim ' + d.musim)), [m.tglTeks, m.lokasi].filter(Boolean).map(E).join(' · ') || (d.sumber === 'IMPOR' ? 'Data hasil kejuaraan yang telah dilaksanakan (diinput panitia)' : 'Hasil resmi musim tersebut'))}
+    main(`<div class="k-wrap pad"><button class="k-btn k-ghostw sm" data-go="riwayat"><i class="bi bi-arrow-left"></i> Riwayat kejuaraan</button>${ph(E(m.event || ('Arsip Musim ' + d.musim)), [m.tglTeks, m.lokasi].filter(Boolean).map(E).join(' · ') || (d.sumber === 'IMPOR' ? 'Data hasil kejuaraan yang telah dilaksanakan (diinput panitia)' : 'Hasil resmi musim tersebut'))}
 ${(d.dok || []).length ? card('Buku Acara & Buku Hasil', KRP.bukuBox(d.dok)) : ''}
 <div class="k-kpis">${kpi('Nomor lomba', d.nomor.length, 'bi-list-ol')}${kpi('Hasil tercatat', d.nomor.reduce((s, n) => s + n.rows.length, 0), 'bi-stopwatch')}${kpi('Atlet', new Set([].concat(...d.nomor.map(n => n.rows.map(r => r.nama + '|' + r.sk)))).size, 'bi-people')}${kpi('Juara umum', E((d.klas.sekolah[0] || {}).nama || '–'), 'bi-trophy')}</div>
 <div class="g2">${kt('Klasemen Sekolah', d.klas.sekolah, 'Sekolah')}${kt('Klasemen Klub', d.klas.klub, 'Klub')}</div>
 ${new Set(d.nomor.map(n => n.kol)).size > 1 ? `<div class="k-seg ars-kol">${[['', 'Semua kolam'], ['LCM', 'Long course · 50 m'], ['SCM', 'Short course · 25 m']].map(x => `<button class="${!x[0] ? 'on' : ''}" data-act="ars-kol" data-v="${x[0]}">${x[1]} <small>(${d.nomor.filter(n => !x[0] || n.kol === x[0]).length})</small></button>`).join('')}</div>` : ''}<input class="k-in" data-in="ars-q" placeholder="Cari nama atlet atau sekolah di arsip ini…" style="margin:6px 0 14px"><div id="ars-list">${d.nomor.map(n => `<div class="ars-n" data-kol="${E(n.kol || '')}" data-s="${E([].concat(n.rows.map(r => r.nama + ' ' + r.sk + ' ' + r.kl)).join(' ').toLowerCase())}">${card(`${n.no ? '#' + n.no + ' · ' : ''}${E(n.event)} · ${G_L[n.g] || n.g} · ${E(jnK(n.jk))}${n.kol ? ` <span class="rk-ctb">${n.kol === 'SCM' ? '25 m' : '50 m'}</span>` : ''}`, `<div class="k-scroll"><table class="k-table">${thd}<tbody>${n.rows.slice(0, 8).map(baris).join('')}</tbody></table></div>${n.rows.length > 8 ? `<details class="ars-more"><summary>Lihat semua ${n.rows.length} hasil</summary><div class="k-scroll"><table class="k-table">${thd}<tbody>${n.rows.slice(8).map(baris).join('')}</tbody></table></div></details>` : ''}`, '', true)}</div>`).join('')}</div></div>`);
   }, 60000);
-  swr('klas', 'pub.klas', {}, d => main(`<div class="k-wrap pad">${ph('Arsip Kejuaraan', 'Hasil, klasemen, dan rekor dari event yang telah dilaksanakan')}${d.arsip.length ? `<div class="g3">${d.arsip.slice().reverse().map(a => `<a class="k-tile" href="#" data-go="arsip" data-p="${E(a.musim)}"><span class="ti"><i class="bi bi-archive"></i></span><b>${E(a.event || ('Musim ' + a.musim))}</b><p class="mut sm">${a.tglTeks ? E(a.tglTeks) + '<br>' : ''}${a.atlet} atlet · ${a.kontingen} sekolah/klub${a.juara ? '<br>Juara umum: ' + E(a.juara) : ''}</p></a>`).join('')}</div>` : empty('bi-archive', 'Belum ada arsip.')}</div>`), 60000);
+  setTimeout(() => go('riwayat', null, 'r')); // daftar arsip kini menjadi halaman Riwayat (portofolio)
 };
 const arsTampil = () => { const q = (S.arsQ || '').toLowerCase(), k = S.arsK || ''; $$('#ars-list .ars-n').forEach(n => { n.hidden = (!!q && n.dataset.s.indexOf(q) < 0) || (!!k && n.dataset.kol !== k); }); };
 ACT['ars-kol'] = a => { S.arsK = a.dataset.v; $$('.ars-kol button').forEach(b => b.classList.toggle('on', b === a)); arsTampil(); };
@@ -640,6 +640,57 @@ function infKel() {
 }
 ACT['inf-k'] = a => { S.ik = a.dataset.v; $$('.inf-kchips .k-chip').forEach(c => c.classList.toggle('on', c === a)); $('#inf-kel').innerHTML = infKel(); };
 KRP.PRE.info = () => [['pev', 'pub.event', {}, 60000]];
+})();
+
+(function () {
+'use strict';
+/* ===== Riwayat & Portofolio kejuaraan (publik, v2.4.0)
+   Satu kartu per edisi (terbaru di atas): angka peserta, juara umum, Best Swimmer, rekor, buku hasil, tautan, dan predikat kurasi Puspresnas.
+   Data otomatis dari hasil web & arsip hasil yang diunggah; dilengkapi Super Admin di menu Portofolio. ===== */
+const { $, $$, E, S, V, INP, swr, ph, card, empty, kpi, thumb, go } = KRP;
+const main = h => { $('#main').innerHTML = h; };
+const angka = n => Number(n || 0).toLocaleString('id-ID');
+const KOL = { SCM: 'Kolam 25 m', LCM: 'Kolam 50 m' };
+const ST = { BERLANGSUNG: ['k-warn', 'Sedang berlangsung'], AKAN_DATANG: ['k-neu', 'Akan datang'] };
+const bintang = p => { const n = Number(p) || 0; return n ? `<span class="pf-star" aria-label="Bintang ${n}">${'★'.repeat(n)}<i>${'★'.repeat(5 - n)}</i></span>` : ''; };
+const md = t => t && t.e !== undefined ? `<span class="bs-md"><span class="md g" title="Emas">${t.e}</span><span class="md s" title="Perak">${t.p}</span><span class="md b" title="Perunggu">${t.b}</span></span>` : '';
+const drive = id => 'https://drive.google.com/file/d/' + encodeURIComponent(id) + '/view';
+
+function kartu(e) {
+  const meta = [e.tglTeks, e.lokasi, e.tingkat ? 'Tingkat ' + e.tingkat : '', KOL[e.kolam]].filter(Boolean), st = ST[e.status];
+  const stat = [['bi-people', e.atlet, 'atlet'], ['bi-building', e.sekolah, 'sekolah/klub'], ['bi-list-ol', e.nomor, 'nomor lomba'], ['bi-award', e.medali, 'medali'], ['bi-lightning-charge', e.rekor, 'rekor baru']].filter(x => Number(x[1]) > 0);
+  const buku = (e.dok || []).filter(d => d.jenis === 'RESULT_BOOK' || d.jenis === 'BUKU_ACARA'), top = (e.top || []).length ? e.top : e.juara ? [{ nama: e.juara }] : [];
+  const cari = [e.judul, e.lokasi, e.tahun, e.juara, e.tingkat].concat(top.map(t => t.nama), (e.bs || []).map(b => b.nama)).join(' ').toLowerCase();
+  return `<article class="pf-ed" data-s="${E(cari)}"><div class="pf-yr"><b>${e.tahun || '–'}</b></div><div class="k-card pf-card">
+${e.foto ? `<div class="pf-cover"><img src="${thumb(e.foto, 1200)}" alt="${E(e.judul)}" loading="lazy"></div>` : ''}<div class="k-card-b">
+<div class="pf-badges">${e.edisi ? `<span class="k-pill k-neu">Edisi ke-${E(e.edisi)}</span>` : ''}${st ? `<span class="k-pill ${st[0]}">${st[1]}</span>` : ''}${e.kur ? `<span class="pf-kur">${bintang(e.kur.pred)}<span>${e.kur.pred === '0' ? 'Terkurasi Puspresnas' : 'Terkurasi Puspresnas · Bintang ' + E(e.kur.pred)}</span></span>` : ''}</div>
+<h3 class="pf-t">${E(e.judul)}</h3>${meta.length ? `<p class="pf-meta">${meta.map(E).join(' · ')}</p>` : ''}${e.ringkas ? `<p class="pf-desc">${E(e.ringkas)}</p>` : ''}
+${stat.length ? `<div class="pf-stat">${stat.map(x => `<span><i class="bi ${x[0]}"></i><b>${angka(x[1])}</b> ${x[2]}</span>`).join('')}</div>` : ''}
+${top.length || (e.bs || []).length ? `<div class="pf-grid">${top.length ? `<div class="pf-box"><small>JUARA UMUM</small>${top.map((t, i) => `<div class="pf-jr"><span class="rk ${['g', 's', 'b'][i]}">${i + 1}</span><b>${E(t.nama)}</b>${md(t)}</div>`).join('')}${e.klub ? `<p class="mut sm" style="margin:6px 0 0">Klub terbaik: ${E(e.klub)}</p>` : ''}</div>` : ''}
+${(e.bs || []).length ? `<div class="pf-box"><small>BEST SWIMMER</small><ul class="pf-bs">${e.bs.map(b => `<li><i class="bi bi-star-fill"></i><span><b>${E(b.nama)}</b><br><span class="mut sm">${E([b.kel, b.g === 'PUTRI' ? 'Putri' : 'Putra'].filter(Boolean).join(' · '))}${b.kont ? ' · ' + E(b.kont) : ''}</span></span></li>`).join('')}</ul></div>` : ''}</div>` : ''}
+${e.arsip && e.musim || buku.length || (e.tautan || []).length ? `<div class="pf-act">${e.arsip && e.musim ? `<a class="k-btn sm k-navy" href="#" data-go="arsip" data-p="${E(e.musim)}"><i class="bi bi-table"></i> Hasil & klasemen</a>` : ''}${buku.map(d => `<a class="k-btn sm k-outline" target="_blank" rel="noopener" href="${drive(d.id)}"><i class="bi bi-file-earmark-pdf"></i> ${d.jenis === 'RESULT_BOOK' ? 'Buku Hasil' : 'Buku Acara'}</a>`).join('')}${(e.tautan || []).map(l => `<a class="k-btn sm k-ghostw" target="_blank" rel="noopener" href="${E(l.u)}"><i class="bi bi-box-arrow-up-right"></i> ${E(l.j || 'Tautan')}</a>`).join('')}</div>` : ''}
+</div></div></article>`;
+}
+
+function riwayatKurasi(L) {
+  const K = L.filter(e => e.kur).sort((a, b) => (Number(b.kur.thn) || b.tahun) - (Number(a.kur.thn) || a.tahun));
+  if (!K.length) return '';
+  return card('<i class="bi bi-patch-check"></i> Riwayat kurasi Puspresnas', `<div class="k-scroll"><table class="k-table pf-kt"><thead><tr><th>Tahun</th><th>Edisi</th><th>Predikat</th><th>No. SK / surat</th><th>Bukti</th></tr></thead><tbody>${K.map(e => `<tr><td class="mono">${E(e.kur.thn || e.tahun || '–')}</td><td><b>${E(e.judul)}</b></td><td>${bintang(e.kur.pred)} <span class="sm">${E(e.kur.predTeks)}</span></td><td>${E(e.kur.sk || '–')}</td><td>${[e.kur.file ? `<a href="${drive(e.kur.file)}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-check"></i> Sertifikat</a>` : '', e.kur.url ? `<a href="${E(e.kur.url)}" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Tautan</a>` : ''].filter(Boolean).join(' · ') || '–'}</td></tr>`).join('')}</tbody></table></div><p class="mut sm" style="margin:8px 0 0">Predikat hasil kurasi ajang dari Pusat Prestasi Nasional (Puspresnas): Bintang 5 (Istimewa) sampai Bintang 1, atau tanpa peringkat.</p>`);
+}
+
+V.riwayat = function () {
+  swr('porto', 'pub.porto', {}, d => {
+    const L = d.edisi || [], r = d.ringkas || {}, nama = (S.B && S.B.cfg && (S.B.cfg.portal_nama || S.B.cfg.app_name)) || 'Kejuaraan Renang Pelajar';
+    if (!L.length) return main(`<div class="k-wrap pad">${ph('Riwayat Kejuaraan', 'Portofolio setiap edisi ' + E(nama))}${empty('bi-journal-richtext', 'Belum ada riwayat kejuaraan yang ditampilkan.')}</div>`);
+    main(`<div class="k-wrap pad">${ph('Riwayat Kejuaraan', `Portofolio ${E(nama)}${r.tahunAwal ? ' sejak ' + r.tahunAwal : ''}: peserta, juara, rekor, dan kurasi tiap edisi.`)}
+<div class="k-kpis pf-kp">${kpi('Edisi', angka(r.edisi), 'bi-journal-richtext', r.tahunAwal ? 'sejak ' + r.tahunAwal : '')}${kpi('Partisipasi atlet', angka(r.atlet), 'bi-people', 'jumlah dari semua edisi')}${kpi('Sekolah/klub', angka(r.sekolah), 'bi-building', 'jumlah dari semua edisi')}${kpi('Rekor tercipta', angka(r.rekor), 'bi-lightning-charge')}${r.terkurasi ? kpi('Terkurasi Puspresnas', r.terkurasi + ' edisi', 'bi-patch-check', r.predTop ? 'tertinggi Bintang ' + r.predTop : '') : ''}</div>
+${riwayatKurasi(L)}
+${L.length > 4 ? '<input class="k-in pf-q" data-in="pf-q" placeholder="Cari edisi, tahun, lokasi, juara, atau Best Swimmer…">' : ''}
+<div class="pf-tl" id="pf-tl">${L.map(kartu).join('')}</div><p class="mut sm" id="pf-kosong" hidden>Tidak ada edisi yang cocok.</p></div>`);
+  }, 60000);
+};
+INP['pf-q'] = i => { const q = i.value.trim().toLowerCase(); clearTimeout(S._pfq); S._pfq = setTimeout(() => { let n = 0; $$('#pf-tl .pf-ed').forEach(a => { a.hidden = !!q && a.dataset.s.indexOf(q) < 0; if (!a.hidden) n++; }); const k = $('#pf-kosong'); if (k) k.hidden = n > 0; }, 150); };
+Object.assign(KRP.PRE, { riwayat: () => [['porto', 'pub.porto', {}, 60000]] });
 })();
 
 (function () {
@@ -857,7 +908,7 @@ const { $, E, S, V, LS, rp, go, home, toast, NAV_APP, isApp, bustCache, shell, A
    2. Segarkan di latar (stale-while-revalidate); bila berubah, kerangka & halaman publik diperbarui.
    3. Tautan langsung (#/jadwal, #/profil/ID) dan tombol Back browser berfungsi.
    4. Panitia yang masih login: modul admin diunduh di latar (prefetch) agar menu langsung responsif. */
-const KRP_VER = '2.0.0', BOOT_K = 'krp_boot', AMAN_SEGAR = ['home', 'info', 'jadwal', 'klas', 'rekor', 'galeri', 'arsip', 'atlet'];
+const KRP_VER = '2.0.0', BOOT_K = 'krp_boot', AMAN_SEGAR = ['home', 'info', 'jadwal', 'klas', 'rekor', 'galeri', 'arsip', 'riwayat', 'atlet'];
 function resetLokal() { try { Object.keys(localStorage).forEach(k => { if (k.indexOf('krp_') === 0 && k !== 'krp_th') localStorage.removeItem(k); }); } catch (e) { } S.me = null; S.token = null; S.cache = {}; }
 function fatal(msg) {
   const m = document.getElementById('main'); if (!m) return;
